@@ -177,7 +177,17 @@ function selectTurno(turno) {
 }
 
 function armarTablaPisos() {
+    console.log("🔧 INICIANDO armarTablaPisos()");
+    console.log("📊 listaEnfermerosDB:", listaEnfermerosDB);
+    console.log("🎯 turnoSeleccionado:", turnoSeleccionado);
+    
     const tableBody = document.getElementById('pisosGridRows');
+    if (!tableBody) {
+        console.error("❌ ERROR: No se encontró el elemento 'pisosGridRows'");
+        alert("ERROR: No se pudo cargar la grilla de pisos. Recarga la página.");
+        return;
+    }
+    
     tableBody.innerHTML = '';
 
     // FILTRADO FLEXIBLE
@@ -192,46 +202,68 @@ function armarTablaPisos() {
     });
 
     console.log(`\n🎯 FILTRADO PARA TURNO: ${turnoSeleccionado}`);
-    console.log(`✅ TITULARES: ${titulares.length}`, titulares);
-    console.log(`✅ EXTRAS: ${extras.length}`, extras);
+    console.log(`✅ TITULARES encontrados: ${titulares.length}`, titulares);
+    console.log(`✅ EXTRAS encontrados: ${extras.length}`, extras);
 
-    if (titulares.length === 0) {
-        alert(`⚠️ ATENCIÓN:\n\nNo se encontraron enfermeros TITULARES para el turno "${turnoSeleccionado}".\n\nEsto puede pasar porque:\n1. Los turnos en Google Sheets están escritos diferente\n2. La columna no se llama "turno"\n\nAbre la consola (F12) para ver los turnos reales encontrados.`);
+    if (listaEnfermerosDB.length === 0) {
+        alert("⚠️ NO HAY DATOS CARGADOS\n\nLa base de datos de enfermeros está vacía.\n\nVerifica que:\n1. Google Sheets tenga datos\n2. El script de Google Apps esté publicado\n3. La URL del API sea correcta\n\nAbre la consola (F12) para más detalles.");
+    } else if (titulares.length === 0) {
+        alert(`⚠️ SIN TITULARES PARA "${turnoSeleccionado}"\n\nSe encontraron ${extras.length} enfermeros EXTRA pero 0 TITULARES.\n\nEsto pasa porque los turnos en Google Sheets no coinciden con "${turnoSeleccionado}".\n\nRevisa la consola (F12) para ver qué turnos hay en la base de datos.`);
     }
 
-    PISOS.forEach(piso => {
+    PISOS.forEach((piso, index) => {
+        console.log(`\n📍 Creando fila para piso ${piso} (${index + 1}/${PISOS.length})`);
+        
         asignaciones[piso] = [];
 
         const row = document.createElement('div');
         row.className = 'grid-row';
         
-        const opcionesTitulares = titulares.length === 0
-            ? '<option value="">⚠️ Sin titulares</option>'
-            : `<option value="">+ Titular (${titulares.length})</option>` +
-              titulares.map(e => `<option value="${obtenerNombreEnfermero(e)}">${obtenerNombreEnfermero(e)}</option>`).join('');
+        // Opciones para titulares
+        let opcionesTitulares = '<option value="">+ Titular</option>';
+        if (titulares.length === 0) {
+            opcionesTitulares = '<option value="" disabled>⚠️ Sin titulares</option>';
+        } else {
+            titulares.forEach(e => {
+                const nombre = obtenerNombreEnfermero(e);
+                opcionesTitulares += `<option value="${nombre}">${nombre}</option>`;
+            });
+        }
         
-        const opcionesExtras = extras.length === 0
-            ? '<option value="">⚠️ Sin extras</option>'
-            : `<option value="">+ Extra (${extras.length})</option>` +
-              extras.map(e => `<option value="${obtenerNombreEnfermero(e)}">${obtenerNombreEnfermero(e)} (${obtenerTurnoEnfermero(e)})</option>`).join('');
+        // Opciones para extras
+        let opcionesExtras = '<option value="">+ Extra</option>';
+        if (extras.length === 0) {
+            opcionesExtras = '<option value="" disabled>⚠️ Sin extras</option>';
+        } else {
+            extras.forEach(e => {
+                const nombre = obtenerNombreEnfermero(e);
+                const turno = obtenerTurnoEnfermero(e);
+                opcionesExtras += `<option value="${nombre}">${nombre} (${turno})</option>`;
+            });
+        }
 
         row.innerHTML = `
             <div class="grid-td-piso">${piso}</div>
             <div class="grid-td-assignments">
                 <div id="cell-list-${piso}" style="display:contents;"></div>
                 
-                <div class="cell-selectors no-print">
-                    <select onchange="registrarEnfermero('${piso}', this, false)">
+                <div class="cell-selectors no-print" style="display: flex; gap: 10px; margin-top: 10px; border-top: 2px dashed #D1D5DB; padding-top: 12px;">
+                    <select id="select-titular-${piso}" onchange="registrarEnfermero('${piso}', this, false)" style="flex: 1; padding: 14px 12px; font-size: 1rem; border: 2px solid #D1D5DB; border-radius: 12px; background: white; font-weight: 600;">
                         ${opcionesTitulares}
                     </select>
-                    <select onchange="registrarEnfermero('${piso}', this, true)">
+                    <select id="select-extra-${piso}" onchange="registrarEnfermero('${piso}', this, true)" style="flex: 1; padding: 14px 12px; font-size: 1rem; border: 2px solid #D1D5DB; border-radius: 12px; background: white; font-weight: 600;">
                         ${opcionesExtras}
                     </select>
                 </div>
             </div>
         `;
+        
+        console.log(`✅ Fila ${piso} creada exitosamente`);
         tableBody.appendChild(row);
     });
+    
+    console.log("✅ armarTablaPisos() completado");
+    console.log(`📊 Total de filas creadas: ${PISOS.length}`);
 }
 
 function registrarEnfermero(piso, selectElement, esExtra) {
