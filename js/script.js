@@ -12,13 +12,13 @@ let supervisorActual = "No Asignado/a";
 let asignaciones = {}; 
 let tercerasAsignadas = [];
 
-// === FLUJO DE INICIALIZACIÓN Y CARGA DE DATOS ===
+// === FLUJO DE INICIALIZACIÓN ===
 document.addEventListener('DOMContentLoaded', function() {
     const modalBox = document.querySelector('.modal-box');
     if (modalBox) {
         modalBox.innerHTML = `
             <h2 id="modalStatusTitle">🔄 Cargando Base de Datos...</h2>
-            <p style="color: #7f8c8d; margin-top: 10px;">Espere un momento mientras nos conectamos con Google Sheets.</p>
+            <p style="color: #7f8c8d; margin-top: 10px;">Conectando con Google Sheets...</p>
             <div class="spinner" style="border-top-color: #1a5276; margin-top: 20px;"></div>
         `;
     }
@@ -40,19 +40,45 @@ document.addEventListener('DOMContentLoaded', function() {
 async function fetchDatosDesdeSheets() {
     try {
         const response = await fetch(CONFIG.SHEETS_API_ENDPOINT);
-        if (response.ok) {
-            const data = await response.json();
-            
-            if (data.enfermeros) listaEnfermerosDB = data.enfermeros;
-            if (data.supervisores) listaSupervisoresDB = data.supervisores;
-            
-            console.log("Información sincronizada con Google Sheets con éxito.");
-            restaurarBotonesModal();
-        } else {
-            marcarErrorCarga();
+        const data = await response.json();
+        
+        console.log("📊 DATOS RECIBIDOS COMPLETOS:", data);
+        console.log("🔑 CLAVES del JSON:", Object.keys(data));
+        
+        // DIAGNÓSTICO: Mostrar qué estructura tiene
+        if (data.enfermeros && data.enfermeros.length > 0) {
+            console.log("👥 Primer enfermero:", data.enfermeros[0]);
+            console.log("🔑 Propiedades del primer enfermero:", Object.keys(data.enfermeros[0]));
         }
+        
+        // Intentar diferentes estructuras posibles
+        if (data.enfermeros) {
+            listaEnfermerosDB = data.enfermeros;
+        } else if (data.Enfermeros) {
+            listaEnfermerosDB = data.Enfermeros;
+        } else if (data.data) {
+            listaEnfermerosDB = data.data;
+        } else if (Array.isArray(data)) {
+            listaEnfermerosDB = data;
+        }
+        
+        if (data.supervisores) {
+            listaSupervisoresDB = data.supervisores;
+        } else if (data.Supervisores) {
+            listaSupervisoresDB = data.Supervisores;
+        }
+        
+        console.log(`✅ Enfermeros cargados: ${listaEnfermerosDB.length}`);
+        console.log(`✅ Supervisores cargados: ${listaSupervisoresDB.length}`);
+        
+        // MOSTRAR TURNOS ÚNICOS ENCONTRADOS
+        const turnosUnicos = [...new Set(listaEnfermerosDB.map(e => e.turno || e.Turno || e.TURNO || "SIN TURNO"))];
+        console.log("🎯 TURNOS ÚNICOS encontrados en la base:", turnosUnicos);
+        
+        restaurarBotonesModal();
+        
     } catch (error) {
-        console.error(error);
+        console.error("❌ ERROR:", error);
         marcarErrorCarga();
     }
 }
@@ -81,7 +107,48 @@ function marcarErrorCarga() {
     }
 }
 
-// === CONTROLADORES DE TURNO Y FILTRADO REAL ===
+// === FUNCIÓN PARA OBTENER EL TURNO DEL ENFERMERO (FLEXIBLE) ===
+function obtenerTurnoEnfermero(enfermero) {
+    // Probar diferentes nombres de propiedad
+    return (enfermero.turno || 
+            enfermero.Turno || 
+            enfermero.TURNO || 
+            enfermero.turno_enfermero ||
+            enfermero.shift ||
+            "").toString().toUpperCase().trim();
+}
+
+function obtenerNombreEnfermero(enfermero) {
+    return (enfermero.nombre || 
+            enfermero.Nombre || 
+            enfermero.NOMBRE || 
+            enfermero.name ||
+            "Sin nombre").toString().trim();
+}
+
+// === FUNCIÓN PARA COMPARAR TURNOS DE FORMA FLEXIBLE ===
+function turnoCoincide(turnoEnfermero, turnoSeleccionado) {
+    if (!turnoEnfermero || !turnoSeleccionado) return false;
+    
+    const t1 = turnoEnfermero.toString().toUpperCase().trim();
+    const t2 = turnoSeleccionado.toString().toUpperCase().trim();
+    
+    // Comparación exacta
+    if (t1 === t2) return true;
+    
+    // Comparación sin tildes
+    const t1Normal = t1.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const t2Normal = t2.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (t1Normal === t2Normal) return true;
+    
+    // Comparación parcial (por si dice "MAÑANA" vs "M" o "MANANA")
+    if (t1.includes(t2) || t2.includes(t1)) return true;
+    if (t1Normal.includes(t2Normal) || t2Normal.includes(t1Normal)) return true;
+    
+    return false;
+}
+
+// === CONTROLADORES DE TURNO ===
 function selectTurno(turno) {
     turnoSeleccionado = turno.toUpperCase().trim();
     document.getElementById('shiftModal').style.display = 'none';
@@ -90,8 +157,15 @@ function selectTurno(turno) {
     document.getElementById('turnoDisplay').textContent = turnoSeleccionado;
     document.getElementById('turnoPrint').textContent = turnoSeleccionado;
 
-    const supervisorEncontrado = listaSupervisoresDB.find(s => s.turno_supervision.toUpperCase().trim() === turnoSeleccionado);
-    supervisorActual = supervisorEncontrado ? supervisorEncontrado.nombre : "Sin supervisor designado";
+    // Buscar supervisor
+    const supervisorEncontrado = listaSupervisoresDB.find(s => {
+        const turnoSup = (s.turno_supervision || s.Turno_Supervision || s.TURNO_SUPERVISION || "").toString();
+        return turnoCoincide(turnoSup, turnoSeleccionado);
+    });
+    
+    supervisorActual = supervisorEncontrado 
+        ? (supervisorEncontrado.nombre || supervisorEncontrado.Nombre || "Sin nombre")
+        : "Sin supervisor designado";
     document.getElementById('supervisorDisplay').textContent = supervisorActual;
 
     if (turnoSeleccionado === "SADOFE") {
@@ -106,14 +180,41 @@ function armarTablaPisos() {
     const tableBody = document.getElementById('pisosGridRows');
     tableBody.innerHTML = '';
 
-    const titulares = listaEnfermerosDB.filter(e => e.turno.toUpperCase().trim() === turnoSeleccionado);
-    const extras = listaEnfermerosDB.filter(e => e.turno.toUpperCase().trim() !== turnoSeleccionado);
+    // FILTRADO FLEXIBLE
+    const titulares = listaEnfermerosDB.filter(e => {
+        const turno = obtenerTurnoEnfermero(e);
+        return turnoCoincide(turno, turnoSeleccionado);
+    });
+
+    const extras = listaEnfermerosDB.filter(e => {
+        const turno = obtenerTurnoEnfermero(e);
+        return !turnoCoincide(turno, turnoSeleccionado);
+    });
+
+    console.log(`\n🎯 FILTRADO PARA TURNO: ${turnoSeleccionado}`);
+    console.log(`✅ TITULARES: ${titulares.length}`, titulares);
+    console.log(`✅ EXTRAS: ${extras.length}`, extras);
+
+    if (titulares.length === 0) {
+        alert(`⚠️ ATENCIÓN:\n\nNo se encontraron enfermeros TITULARES para el turno "${turnoSeleccionado}".\n\nEsto puede pasar porque:\n1. Los turnos en Google Sheets están escritos diferente\n2. La columna no se llama "turno"\n\nAbre la consola (F12) para ver los turnos reales encontrados.`);
+    }
 
     PISOS.forEach(piso => {
         asignaciones[piso] = [];
 
         const row = document.createElement('div');
         row.className = 'grid-row';
+        
+        const opcionesTitulares = titulares.length === 0
+            ? '<option value="">⚠️ Sin titulares</option>'
+            : `<option value="">+ Titular (${titulares.length})</option>` +
+              titulares.map(e => `<option value="${obtenerNombreEnfermero(e)}">${obtenerNombreEnfermero(e)}</option>`).join('');
+        
+        const opcionesExtras = extras.length === 0
+            ? '<option value="">⚠️ Sin extras</option>'
+            : `<option value="">+ Extra (${extras.length})</option>` +
+              extras.map(e => `<option value="${obtenerNombreEnfermero(e)}">${obtenerNombreEnfermero(e)} (${obtenerTurnoEnfermero(e)})</option>`).join('');
+
         row.innerHTML = `
             <div class="grid-td-piso">${piso}</div>
             <div class="grid-td-assignments">
@@ -121,12 +222,10 @@ function armarTablaPisos() {
                 
                 <div class="cell-selectors no-print">
                     <select onchange="registrarEnfermero('${piso}', this, false)">
-                        <option value="">+ Titular</option>
-                        ${titulares.map(e => `<option value="${e.nombre}">${e.nombre}</option>`).join('')}
+                        ${opcionesTitulares}
                     </select>
                     <select onchange="registrarEnfermero('${piso}', this, true)">
-                        <option value="">+ Extra</option>
-                        ${extras.map(e => `<option value="${e.nombre}">${e.nombre} (${e.turno})</option>`).join('')}
+                        ${opcionesExtras}
                     </select>
                 </div>
             </div>
@@ -181,12 +280,14 @@ function removerEnfermeroCelda(piso, idx) {
     renderCeldasPiso(piso);
 }
 
-// === GESTIÓN DE PERSONAL EN TERCERAS ===
+// === TERCERAS ===
 function poblarSelectoresTerceras() {
     const select = document.getElementById('selectTerceraNurse');
     select.innerHTML = '<option value="">-- Seleccionar Enfermero/a --</option>';
     listaEnfermerosDB.forEach(e => {
-        select.innerHTML += `<option value="${e.nombre}">${e.nombre} (${e.turno})</option>`;
+        const nombre = obtenerNombreEnfermero(e);
+        const turno = obtenerTurnoEnfermero(e);
+        select.innerHTML += `<option value="${nombre}">${nombre} (${turno})</option>`;
     });
 }
 
@@ -233,7 +334,7 @@ function eliminarTerceraIdx(idx) {
     renderizarTercerasList();
 }
 
-// === EXPORTACIONES EN FORMATO JPG ===
+// === EXPORTACIONES ===
 function generarImagen() {
     const areaCaptura = document.getElementById('cronogramaContainer');
     
@@ -243,7 +344,7 @@ function generarImagen() {
 
     html2canvas(areaCaptura, {
         scale: 2,
-        backgroundColor: "#ffffff", // Garantiza fondo blanco para el formato JPG
+        backgroundColor: "#ffffff",
         useCORS: true
     }).then(canvas => {
         const lienzoDestino = document.getElementById('canvasImagen');
@@ -263,12 +364,10 @@ function generarImagen() {
 function descargarImagen() {
     const link = document.createElement('a');
     link.download = `Planilla_Enfermeria_${turnoSeleccionado}.jpg`;
-    // Exportamos forzando calidad JPG
     link.href = document.getElementById('canvasImagen').toDataURL('image/jpeg', 0.95);
     link.click();
 }
 
-// Envío de Imagen directa en JPG
 function compartirImagenWhatsApp() {
     const canvas = document.getElementById('canvasImagen');
     if (!canvas) return alert("Primero debe generar la imagen.");
@@ -294,7 +393,6 @@ function compartirImagenWhatsApp() {
     }, 'image/jpeg', 0.95);
 }
 
-// TEXTO PLANO POR WHATSAPP (Solo la info del programa sin firma)
 function compartirWhatsAppTexto() {
     let bloqueTexto = `📋 *DISTRIBUCIÓN DE ENFERMERÍA - TURNO ${turnoSeleccionado}*\n`;
     bloqueTexto += `⭐ *Supervisor/a:* ${supervisorActual}\n`;
