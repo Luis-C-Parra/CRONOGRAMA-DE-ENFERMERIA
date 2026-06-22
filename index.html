@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Armador de Programa de Enfermería</title>
+    <link rel="stylesheet" href="css/styles.css?v=20260622">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+
+    <div id="splashScreen" class="splash-container">
+    <div class="splash-content">
+        <div class="splash-icon">⚕️</div>
+        <h1>ARMADOR DE PROGRAMA<br>DE ENFERMERÍA</h1>
+        <p class="author">Lic. Luis C. Parra</p>
+        <div class="spinner"></div>
+    </div>
+</div>
+
+    <div id="shiftModal" class="modal-overlay" style="display: none;">
+        <div class="modal-box">
+            <h2 id="modalStatusTitle">Seleccione el Turno a Armar</h2>
+            <div class="shift-options">
+                <button onclick="selectTurno('MAÑANA')">☀️ MAÑANA</button>
+                <button onclick="selectTurno('TARDE')">⛅ TARDE</button>
+                <button onclick="selectTurno('NOCHE A')">🌌 NOCHE A</button>
+                <button onclick="selectTurno('NOCHE B')">🌌 NOCHE B</button>
+                <button onclick="selectTurno('SADOFE')">🏥 SADOFE</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="mainApp" style="display: none;">
+        <header class="app-header no-print">
+            <h1>PROGRAMA DE ENFERMERÍA - TURNO <span id="turnoDisplay"></span></h1>
+            <p class="header-author">Lic. Luis C. Parra</p>
+            <button class="btn-change-shift" onclick="location.reload()">🔄 Cambiar Turno / Reiniciar</button>
+        </header>
+
+        <main class="app-content">
+            <div id="cronogramaContainer" class="cronograma-render">
+                
+                <div class="grid-table-header">
+                    <h2>📋 DISTRIBUCIÓN DE PERSONAL DE ENFERMERÍA</h2>
+                    <div class="grid-meta-info">
+                        <p><strong>TURNO:</strong> <span id="turnoPrint" class="highlight-text"></span></p>
+                        <p><strong>SUPERVISOR/A:</strong> <span id="supervisorDisplay" class="highlight-text">Buscando...</span></p>
+                    </div>
+                </div>
+                
+                <div class="cronograma-grid-table">
+                    <div class="grid-th">PISO / SECTOR</div>
+                    <div class="grid-th">PERSONAL ASIGNADO</div>
+                    
+                    <div id="pisosGridRows" class="grid-table-body"></div>
+                </div>
+
+                <div class="terceras-grid-block">
+                    <div class="terceras-title-bar">📌 PERSONAL EN FUNCIONES DE TERCERA / ADICIONALES</div>
+                    <div id="tercerasContainer" class="terceras-list-box">
+                        <p class="empty-msg" id="noTercerasMsg">No hay personal de tercera asignado aún.</p>
+                    </div>
+                    
+                    <div class="terceras-controls no-print">
+                        <select id="selectTerceraNurse">
+                            <option value="">-- Seleccionar Enfermero/a --</option>
+                        </select>
+                        <select id="selectTerceraPiso">
+                            <option value="">-- Asignar Piso --</option>
+                            <option value="1B">1B</option>
+                            <option value="2B">2B</option>
+                            <option value="4B">4B</option>
+                            <option value="1C">1C</option>
+                            <option value="2C">2C</option>
+                            <option value="3C">3C</option>
+                            <option value="4C">4C</option>
+                        </select>
+                        <select id="selectTerceraTurnoSub" style="display: none;">
+                            <option value="MAÑANA">Mañana</option>
+                            <option value="TARDE">Tarde</option>
+                        </select>
+                        <button class="btn-add" onclick="agregarTercera()">➕ Agregar Tercera</button>
+                    </div>
+                </div>
+
+                <div class="print-footer">
+                    <p>Armador de Programa de Enfermería Automatizado © Lic. Luis C. Parra</p>
+                </div>
+            </div>
+
+            <div class="action-buttons no-print">
+                <button class="btn-action btn-image" onclick="generarImagen()">🖼️ Generar Imagen Profesional</button>
+                <button class="btn-action btn-share" onclick="compartirWhatsAppTexto()">💬 Compartir Texto por WhatsApp</button>
+            </div>
+
+            <div id="imagenGeneradaContainer" style="display: none;" class="no-print">
+                <h3>📷 Vista Previa del Cronograma en Grilla Estilizada:</h3>
+                <canvas id="canvasImagen"></canvas>
+                <br>
+                <div class="preview-actions">
+                    <button class="btn-download" onclick="descargarImagen()">💾 Descargar Imagen (.jpg)</button>
+                    <button class="btn-share-img" onclick="compartirImagenWhatsApp()">💬 Compartir Imagen por WhatsApp</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/script.js"></script>
+</body>
+</html>
