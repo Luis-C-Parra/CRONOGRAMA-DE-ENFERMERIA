@@ -969,3 +969,205 @@ body {
         width: auto !important;
     }
 }
+
+/* ========================================
+   🔄 CAMBIO DE GUARDIA - ESTILO AZUL
+   ======================================== */
+
+.nurse-tag.is-cambio-guardia {
+    background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%) !important;
+    border-left-color: #3B82F6 !important;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15) !important;
+}
+
+.nurse-tag.is-cambio-guardia:hover {
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.25) !important;
+}
+
+/* ========================================
+   📍 TERCERAS MULTI-PISO - CHECKBOXES
+   ======================================== */
+
+.pisos-checkbox-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 8px;
+    padding: 10px;
+    background: white;
+    border: 2px solid #D1D5DB;
+    border-radius: 12px;
+    margin-top: 8px;
+}
+
+.piso-checkbox-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 8px;
+    background: #F3F4F6;
+    border: 2px solid #E5E7EB;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.piso-checkbox-item:hover {
+    background: #E0F2FE;
+    border-color: #667eea;
+    transform: translateY(-2px);
+}
+
+.piso-checkbox-item input[type="checkbox"] {
+    display: none;
+}
+
+.piso-checkbox-item input[type="checkbox"]:checked + span {
+    color: #667eea;
+    font-weight: 800;
+}
+
+.piso-checkbox-item:has(input:checked) {
+    background: linear-gradient(135deg, #E0F2FE 0%, #DBEAFE 100%);
+    border-color: #667eea;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+}
+
+.piso-checkbox-item span {
+    pointer-events: none;
+}
+
+@media (max-width: 768px) {
+    .pisos-checkbox-group {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 769px) {
+    .pisos-checkbox-group {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* ========================================
+   🎯 MODALES DE SELECCIÓN RÁPIDA
+   ======================================== */
+
+#modalTipoAsignacion .shift-options button,
+#modalFranjaHoraria .shift-options button {
+    padding: 18px !important;
+    font-size: 1.1rem !important;
+    min-height: 70px;
+}
+
+/* Animación de entrada */
+#modalTipoAsignacion,
+#modalFranjaHoraria {
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+#modalTipoAsignacion .modal-box,
+#modalFranjaHoraria .modal-box {
+    animation: slideUp 0.3s ease;
+}
+
+/* ========================================
+   📅 MODAL DE FECHAS
+   ======================================== */
+
+.fechas-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 15px;
+    min-height: 40px;
+    padding: 10px;
+    background: #F9FAFB;
+    border: 2px dashed #D1D5DB;
+    border-radius: 12px;
+}
+
+.fecha-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%);
+    border: 2px solid #3B82F6;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #1E40AF;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.fecha-tag .btn-remove-fecha {
+    background: rgba(239, 68, 68, 0.2);
+    border: none;
+    color: #EF4444;
+    cursor: pointer;
+    font-weight: bold;
+    padding: 4px 8px;
+    border-radius: 50%;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+
+.fecha-tag .btn-remove-fecha:hover {
+    background: #EF4444;
+    color: white;
+}
+
+.fecha-input-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.input-fecha {
+    flex: 1;
+    padding: 12px;
+    font-size: 1rem;
+    border: 2px solid #D1D5DB;
+    border-radius: 12px;
+    background: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.input-fecha:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+}
+
+.fecha-vacia {
+    color: #9CA3AF;
+    font-style: italic;
+    text-align: center;
+    padding: 10px;
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .fecha-input-group {
+        flex-direction: column;
+    }
+    
+    .input-fecha {
+        width: 100%;
+    }
+}

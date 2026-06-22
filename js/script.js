@@ -153,101 +153,145 @@ function turnoCoincide(turnoEnfermero, turnoSeleccionado) {
     return false;
 }
 
-// === PREGUNTAR DÍAS PARA SADOFE ===
-function preguntarDiasSadofe() {
-    return new Promise((resolve) => {
-        // Paso 1: Preguntar por feriados
-        const tieneFeriados = confirm(
-            "🏥 CRONOGRAMA SADOFE\n\n" +
-            "¿El cronograma incluye días feriados?\n\n" +
-            "• OK = Sí, hay feriados a integrar\n" +
-            "• Cancelar = Solo Sábado y Domingo"
-        );
-        
-        if (!tieneFeriados) {
-            // Solo fin de semana
-            const proximoSabado = obtenerProximoDiaSemana(6); // 6 = Sábado
-            const proximoDomingo = obtenerProximoDiaSemana(0); // 0 = Domingo
-            
-            const dias = `Sábado ${proximoSabado.dia} y Domingo ${proximoDomingo.dia} de ${proximoSabado.mes}`;
-            resolve(dias);
-        } else {
-            // Preguntar qué feriados
-            const diasFeriados = prompt(
-                "📅 INGRESE LOS DÍAS DEL CRONOGRAMA\n\n" +
-                "Ejemplos:\n" +
-                "• Sábado 28 y Domingo 29 de Junio\n" +
-                "• Sábado 28, Domingo 29 y Lunes 30 (Feriado)\n" +
-                "• Viernes 27 al Lunes 30 de Junio\n\n" +
-                "Escriba los días completos:"
-            );
-            
-            if (diasFeriados === null || diasFeriados.trim() === "") {
-                alert("❌ Operación cancelada. Debe ingresar los días.");
-                resolve(null);
-            } else {
-                resolve(diasFeriados.trim());
-            }
-        }
-    });
-}
 
-// === FUNCION AUXILIAR: OBTENER PRÓXIMO DÍA DE LA SEMANA ===
-function obtenerProximoDiaSemana(diaSemana) {
-    const hoy = new Date();
-    const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-    const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
-                   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-    
-    let diasHasta = diaSemana - hoy.getDay();
-    if (diasHasta < 0) diasHasta += 7;
-    if (diasHasta === 0 && hoy.getHours() >= 12) diasHasta += 7;
-    
-    const fecha = new Date(hoy);
-    fecha.setDate(hoy.getDate() + diasHasta);
-    
-    return {
-        dia: fecha.getDate(),
-        mes: meses[fecha.getMonth()],
-        nombre: dias[fecha.getDay()]
-    };
-}
 
 // === SELECCIÓN DE TURNO - SIN SPLASH ===
+// Variable para almacenar fechas temporalmente
+let fechasTemporales = [];
+let turnoEnProceso = "";
+
 async function selectTurno(turno) {
     turnoSeleccionado = turno.toUpperCase().trim();
     horarioActual = HORARIOS[turnoSeleccionado];
+    turnoEnProceso = turnoSeleccionado;
+    fechasTemporales = [];
     
-    // === PARA SADOFE: PREGUNTAR POR DÍAS Y FERIADOS ===
+    // Mostrar modal de fechas
+    const descripcionFecha = document.getElementById('descripcionFecha');
+    
     if (turnoSeleccionado === "SADOFE") {
-        const diasConfirmados = await preguntarDiasSadofe();
-        if (!diasConfirmados) {
-            // Usuario canceló
-            document.getElementById('shiftModal').style.display = 'flex';
-            return;
-        }
-        diasCronograma = diasConfirmados;
+        descripcionFecha.innerHTML = `
+            🏥 <strong>Turno SADOFE</strong><br>
+            <small style="color: #6B7280;">
+                Selecciona los días de guardia. Puede ser:<br>
+                • Solo un día feriado<br>
+                • Sábado y Domingo<br>
+                • Varios días consecutivos
+            </small>
+        `;
     } else {
-        // Para otros turnos, usar la fecha actual
-        const hoy = new Date();
-        const opciones = { weekday: 'long', day: 'numeric', month: 'long' };
-        diasCronograma = hoy.toLocaleDateString('es-AR', opciones);
-        diasCronograma = diasCronograma.charAt(0).toUpperCase() + diasCronograma.slice(1);
+        descripcionFecha.innerHTML = `
+            ${horarioActual.icono} <strong>Turno ${turnoSeleccionado}</strong><br>
+            <small style="color: #6B7280;">Selecciona la fecha del cronograma</small>
+        `;
     }
     
-    // Ocultar modal y mostrar app
+    // Limpiar lista de fechas
+    document.getElementById('fechasSeleccionadas').innerHTML = '<p class="fecha-vacia">No hay fechas seleccionadas</p>';
+    document.getElementById('inputFecha').value = '';
+    
+    // Mostrar modal
+    document.getElementById('modalFecha').style.display = 'flex';
+}
+
+// === AGREGAR FECHA ===
+function agregarFecha() {
+    const inputFecha = document.getElementById('inputFecha');
+    const fechaStr = inputFecha.value;
+    
+    if (!fechaStr) {
+        alert("⚠️ Selecciona una fecha del calendario.");
+        return;
+    }
+    
+    // Convertir fecha a formato legible
+    const fecha = new Date(fechaStr + 'T00:00:00');
+    const opciones = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+    const fechaFormateada = fecha.toLocaleDateString('es-AR', opciones);
+    const fechaCapitalizada = fechaCapitalizar(fechaFormateada);
+    
+    // Verificar si ya existe
+    if (fechasTemporales.includes(fechaStr)) {
+        alert("⚠️ Esa fecha ya está agregada.");
+        return;
+    }
+    
+    // Agregar
+    fechasTemporales.push(fechaStr);
+    
+    // Renderizar lista
+    renderizarFechasSeleccionadas();
+    
+    // Limpiar input
+    inputFecha.value = '';
+}
+
+// === RENDERIZAR FECHAS SELECCIONADAS ===
+function renderizarFechasSeleccionadas() {
+    const container = document.getElementById('fechasSeleccionadas');
+    container.innerHTML = '';
+    
+    if (fechasTemporales.length === 0) {
+        container.innerHTML = '<p class="fecha-vacia">No hay fechas seleccionadas</p>';
+        return;
+    }
+    
+    fechasTemporales.forEach((fechaStr, idx) => {
+        const fecha = new Date(fechaStr + 'T00:00:00');
+        const opciones = { weekday: 'short', day: 'numeric', month: 'short' };
+        const fechaCorta = fecha.toLocaleDateString('es-AR', opciones);
+        const fechaCapitalizada = fechaCapitalizar(fechaCorta);
+        
+        const tag = document.createElement('div');
+        tag.className = 'fecha-tag';
+        tag.innerHTML = `
+            <span>📅 ${fechaCapitalizada}</span>
+            <button class="btn-remove-fecha" onclick="eliminarFecha(${idx})">✕</button>
+        `;
+        container.appendChild(tag);
+    });
+}
+
+// === ELIMINAR FECHA ===
+function eliminarFecha(idx) {
+    fechasTemporales.splice(idx, 1);
+    renderizarFechasSeleccionadas();
+}
+
+// === CONFIRMAR FECHAS ===
+function confirmarFechas() {
+    if (fechasTemporales.length === 0) {
+        alert("⚠️ Debes seleccionar al menos una fecha.");
+        return;
+    }
+    
+    // Ordenar fechas
+    fechasTemporales.sort();
+    
+    // Construir texto de fechas
+    const fechasFormateadas = fechasTemporales.map(fechaStr => {
+        const fecha = new Date(fechaStr + 'T00:00:00');
+        const opciones = { weekday: 'long', day: 'numeric', month: 'long' };
+        return fechaCapitalizar(fecha.toLocaleDateString('es-AR', opciones));
+    });
+    
+    if (fechasFormateadas.length === 1) {
+        diasCronograma = fechasFormateadas[0];
+    } else {
+        diasCronograma = fechasFormateadas.join(' | ');
+    }
+    
+    // Cerrar modal de fechas
+    document.getElementById('modalFecha').style.display = 'none';
+    
+    // Mostrar app
     document.getElementById('shiftModal').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
     
     // Actualizar displays
     document.getElementById('turnoDisplay').textContent = turnoSeleccionado;
     document.getElementById('turnoPrint').textContent = turnoSeleccionado;
-    
-    // Actualizar horario
-    document.getElementById('horarioDisplay').textContent = 
-        `${horarioActual.inicio} a ${horarioActual.fin}`;
-    
-    // Actualizar días
+    document.getElementById('horarioDisplay').textContent = `${horarioActual.inicio} a ${horarioActual.fin}`;
     document.getElementById('diasDisplay').textContent = diasCronograma;
     
     // Buscar supervisores
@@ -272,6 +316,18 @@ async function selectTurno(turno) {
     poblarSelectoresTerceras();
 }
 
+// === CANCELAR FECHAS ===
+function cancelarFechas() {
+    document.getElementById('modalFecha').style.display = 'none';
+    document.getElementById('shiftModal').style.display = 'flex';
+    fechasTemporales = [];
+    turnoEnProceso = "";
+}
+
+// === FUNCION AUXILIAR: CAPITALIZAR PRIMERA LETRA ===
+function fechaCapitalizar(texto) {
+    return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
 // === ARMAR TABLA DE PISOS ===
 function armarTablaPisos() {
     const tableBody = document.getElementById('pisosGridRows');
@@ -356,30 +412,116 @@ function armarTablaPisos() {
     });
 }
 
+// Variables temporales para el modal
+let pisoActual = "";
+let nombreActual = "";
+let esExtraActual = false;
+let franjaActual = "";
+
 function registrarEnfermero(piso, selectElement, esExtra) {
     const nombre = selectElement.value;
     if (!nombre) return;
 
-    let leyendaFinal = nombre;
-
-    if (turnoSeleccionado === "SADOFE" && esExtra) {
-        const franja = prompt(`El enfermero extra "${nombre}" ¿Estará en la MAÑANA o en la TARDE?\n\nEscriba 'M' o 'T':`).trim().toUpperCase();
-        if (franja === 'M') {
-            leyendaFinal += " (Extra - Mañana)";
-        } else if (franja === 'T') {
-            leyendaFinal += " (Extra - Tarde)";
-        } else {
-            alert("Operación cancelada.");
-            selectElement.value = "";
-            return;
-        }
-    } else if (esExtra) {
-        leyendaFinal += " (Extra)";
+    if (esExtra) {
+        // Guardar datos temporalmente
+        pisoActual = piso;
+        nombreActual = nombre;
+        esExtraActual = esExtra;
+        
+        // Mostrar modal en vez de prompt
+        document.getElementById('tituloModalAsignacion').textContent = `Asignar a ${nombre}`;
+        document.getElementById('descripcionModalAsignacion').textContent = `¿Cómo se asigna al Piso ${piso}?`;
+        document.getElementById('modalTipoAsignacion').style.display = 'flex';
+        
+        selectElement.value = "";
+        return;
     }
 
-    asignaciones[piso].push({ texto: leyendaFinal, esExtra: esExtra });
+    // Si es titular, agregar directamente
+    asignaciones[piso].push({ 
+        texto: nombre, 
+        esExtra: false,
+        esCambioGuardia: false
+    });
+    
     renderCeldasPiso(piso);
     selectElement.value = "";
+}
+
+// === CONFIRMAR TIPO DE ASIGNACIÓN (Extra o Cambio de Guardia) ===
+function confirmarTipoAsignacion(tipo) {
+    document.getElementById('modalTipoAsignacion').style.display = 'none';
+    
+    if (tipo === 'C') {
+        // Cambio de Guardia - agregar directamente
+        const leyendaFinal = `${nombreActual} (Cambio de Guardia)`;
+        asignaciones[pisoActual].push({ 
+            texto: leyendaFinal, 
+            esExtra: false,
+            esCambioGuardia: true
+        });
+        renderCeldasPiso(pisoActual);
+    } else if (tipo === 'E') {
+        // Extra - si es SADOFE, preguntar franja horaria
+        if (turnoSeleccionado === "SADOFE") {
+            document.getElementById('modalFranjaHoraria').style.display = 'flex';
+            return;
+        }
+        
+        // Si no es SADOFE, agregar como Extra normal
+        const leyendaFinal = `${nombreActual} (Extra)`;
+        asignaciones[pisoActual].push({ 
+            texto: leyendaFinal, 
+            esExtra: true,
+            esCambioGuardia: false
+        });
+        renderCeldasPiso(pisoActual);
+    }
+    
+    // Resetear variables
+    pisoActual = "";
+    nombreActual = "";
+    esExtraActual = false;
+}
+
+// === CANCELAR TIPO DE ASIGNACIÓN ===
+function cancelarTipoAsignacion() {
+    document.getElementById('modalTipoAsignacion').style.display = 'none';
+    pisoActual = "";
+    nombreActual = "";
+    esExtraActual = false;
+}
+
+// === CONFIRMAR FRANJA HORARIA (SADOFE) ===
+function confirmarFranjaHoraria(franja) {
+    document.getElementById('modalFranjaHoraria').style.display = 'none';
+    
+    let leyendaFinal = nombreActual;
+    if (franja === 'M') {
+        leyendaFinal += " (Extra - Mañana)";
+    } else if (franja === 'T') {
+        leyendaFinal += " (Extra - Tarde)";
+    }
+    
+    asignaciones[pisoActual].push({ 
+        texto: leyendaFinal, 
+        esExtra: true,
+        esCambioGuardia: false
+    });
+    renderCeldasPiso(pisoActual);
+    
+    // Resetear variables
+    pisoActual = "";
+    nombreActual = "";
+    esExtraActual = false;
+}
+
+// === CANCELAR FRANJA HORARIA ===
+function cancelarFranjaHoraria() {
+    document.getElementById('modalFranjaHoraria').style.display = 'none';
+    pisoActual = "";
+    nombreActual = "";
+    esExtraActual = false;
 }
 
 function renderCeldasPiso(piso) {
@@ -388,7 +530,16 @@ function renderCeldasPiso(piso) {
 
     asignaciones[piso].forEach((asig, idx) => {
         const tag = document.createElement('div');
-        tag.className = `nurse-tag ${asig.esExtra ? 'is-extra' : ''}`;
+        
+        // Clases CSS según tipo
+        let clases = 'nurse-tag';
+        if (asig.esCambioGuardia) {
+            clases += ' is-cambio-guardia';
+        } else if (asig.esExtra) {
+            clases += ' is-extra';
+        }
+        
+        tag.className = clases;
         tag.innerHTML = `
             <span>👤 ${asig.texto}</span>
             <button class="btn-remove-nurse no-print" onclick="removerEnfermeroCelda('${piso}', ${idx})">❌</button>
@@ -403,6 +554,7 @@ function removerEnfermeroCelda(piso, idx) {
 }
 
 // === TERCERAS ===
+// === TERCERAS ===
 function poblarSelectoresTerceras() {
     const select = document.getElementById('selectTerceraNurse');
     select.innerHTML = '<option value="">-- Seleccionar Enfermero/a --</option>';
@@ -413,53 +565,153 @@ function poblarSelectoresTerceras() {
     });
 }
 
-function agregarTercera() {
+// === MOSTRAR SELECTOR DE PISOS (MULTI-SELECCIÓN) ===
+function mostrarSelectorPisos() {
     const enfermero = document.getElementById('selectTerceraNurse').value;
-    const pisoDestino = document.getElementById('selectTerceraPiso').value;
     
-    if (!enfermero || !pisoDestino) return alert("Complete los campos.");
-
-    let plantillaTercera = `Tercera: ${enfermero} -> Piso ${pisoDestino}`;
-
+    if (!enfermero) {
+        alert("⚠️ Primero selecciona un enfermero/a.");
+        return;
+    }
+    
+    // Si es SADOFE, verificar franja horaria
     if (turnoSeleccionado === "SADOFE") {
-        const subTurnoSadofe = document.getElementById('selectTerceraTurnoSub').value;
-        if (subTurnoSadofe) {
-            plantillaTercera += ` [${subTurnoSadofe === 'MAÑANA' ? '☀️' : '⛅'} ${subTurnoSadofe}]`;
-        } else {
-            alert("⚠️ Por favor seleccione la franja horaria (Mañana o Tarde) para SADOFE.");
+        const subTurno = document.getElementById('selectTerceraTurnoSub').value;
+        if (!subTurno) {
+            alert("⚠️ Selecciona la franja horaria (Mañana o Tarde) para SADOFE.");
             return;
         }
     }
-
-    tercerasAsignadas.push(plantillaTercera);
-    document.getElementById('noTercerasMsg').style.display = 'none';
-    renderizarTercerasList();
-
-    document.getElementById('selectTerceraNurse').value = "";
-    document.getElementById('selectTerceraPiso').value = "";
     
-    // No resetear el select de turno SADOFE para facilitar agregar múltiples
-}
-
-function renderizarTercerasList() {
-    const box = document.getElementById('tercerasContainer');
-    box.querySelectorAll('.nurse-tag').forEach(el => el.remove());
-
-    tercerasAsignadas.forEach((t, idx) => {
-        const div = document.createElement('div');
-        div.className = 'nurse-tag';
-        div.style.borderLeftColor = '#9b59b6';
-        div.innerHTML = `
-            <span>📌 ${t}</span>
-            <button class="btn-remove-nurse no-print" onclick="eliminarTerceraIdx(${idx})">❌</button>
-        `;
-        box.insertBefore(div, document.getElementById('noTercerasMsg'));
+    // Mostrar el selector de pisos
+    document.getElementById('pisosMultiSelect').style.display = 'block';
+    
+    // Limpiar checkboxes
+    document.querySelectorAll('#pisosMultiSelect input[type="checkbox"]').forEach(cb => {
+        cb.checked = false;
     });
 }
 
+// === CONFIRMAR TERCERA CON MÚLTIPLES PISOS ===
+function confirmarTercera() {
+    console.log("🔍 INICIANDO confirmarTercera()");
+    
+    const enfermero = document.getElementById('selectTerceraNurse').value;
+    console.log("👤 Enfermero seleccionado:", enfermero);
+    
+    const checkboxes = document.querySelectorAll('#pisosMultiSelect input[type="checkbox"]:checked');
+    console.log("✅ Checkboxes seleccionados:", checkboxes.length);
+    
+    if (checkboxes.length === 0) {
+        console.warn("⚠️ No hay pisos seleccionados");
+        alert("⚠️ Selecciona al menos un piso.");
+        return;
+    }
+    
+    // Obtener pisos seleccionados
+    const pisosSeleccionados = Array.from(checkboxes).map(cb => {
+        console.log("  - Piso:", cb.value);
+        return cb.value;
+    });
+    
+    console.log("📋 Pisos:", pisosSeleccionados);
+    
+    // Construir plantilla
+    let plantillaTercera = `Tercera: ${enfermero} -> Piso ${pisosSeleccionados.join(' y ')}`;
+    console.log("📝 Plantilla:", plantillaTercera);
+    
+    // Agregar franja horaria si es SADOFE
+    if (turnoSeleccionado === "SADOFE") {
+        const subTurno = document.getElementById('selectTerceraTurnoSub').value;
+        console.log("🏥 SADOFE - SubTurno:", subTurno);
+        if (subTurno) {
+            plantillaTercera += ` [${subTurno === 'MAÑANA' ? '☀️' : '⛅'} ${subTurno}]`;
+        }
+    }
+    
+    // Agregar a la lista
+    console.log("💾 Agregando a tercerasAsignadas...");
+    console.log("  - Antes:", tercerasAsignadas.length);
+    
+    tercerasAsignadas.push({
+        texto: plantillaTercera,
+        pisos: pisosSeleccionados
+    });
+    
+    console.log("  - Después:", tercerasAsignadas.length);
+    console.log("  - Datos:", tercerasAsignadas);
+    
+    // Ocultar mensaje "no hay terceras"
+    const noTercerasMsg = document.getElementById('noTercerasMsg');
+    console.log("🔍 noTercerasMsg:", noTercerasMsg);
+    if (noTercerasMsg) {
+        noTercerasMsg.style.display = 'none';
+        console.log("✅ Mensaje ocultado");
+    }
+    
+    // Renderizar lista
+    console.log("🎨 Llamando a renderizarTercerasList()...");
+    renderizarTercerasList();
+    
+    // Limpiar y ocultar
+    document.getElementById('selectTerceraNurse').value = "";
+    document.getElementById('pisosMultiSelect').style.display = 'none';
+    console.log("✅ Limpieza completada");
+    console.log("🎉 Tercera agregada exitosamente!");
+}
+// === CANCELAR TERCERA ===
+function cancelarTercera() {
+    document.getElementById('pisosMultiSelect').style.display = 'none';
+}
+
+// === RENDERIZAR LISTA DE TERCERAS ===
+function renderizarTercerasList() {
+    console.log("🎨 INICIANDO renderizarTercerasList()");
+    console.log("  - Terceras asignadas:", tercerasAsignadas.length);
+    
+    const box = document.getElementById('tercerasContainer');
+    console.log("  - Contenedor:", box);
+    
+    if (!box) {
+        console.error("❌ ERROR: No se encontró 'tercerasContainer'");
+        return;
+    }
+    
+    // Eliminar tags existentes
+    box.querySelectorAll('.nurse-tag').forEach(el => {
+        console.log("  - Eliminando tag:", el);
+        el.remove();
+    });
+
+    // Agregar nuevas terceras
+    tercerasAsignadas.forEach((t, idx) => {
+        console.log(`  - Agregando tercera ${idx}:`, t);
+        
+        const div = document.createElement('div');
+        div.className = 'nurse-tag';
+        div.style.borderLeftColor = '#9b59b6';
+        
+        // Manejar tanto objetos como strings
+        const textoTercera = typeof t === 'object' ? t.texto : t;
+        
+        div.innerHTML = `
+            <span>📌 ${textoTercera}</span>
+            <button class="btn-remove-nurse no-print" onclick="eliminarTerceraIdx(${idx})">❌</button>
+        `;
+        
+        const noTercerasMsg = document.getElementById('noTercerasMsg');
+        box.insertBefore(div, noTercerasMsg);
+        console.log("  - Tag agregado al DOM");
+    });
+    
+    console.log("✅ renderizarTercerasList() completado");
+}
+// === ELIMINAR TERCERA ===
 function eliminarTerceraIdx(idx) {
     tercerasAsignadas.splice(idx, 1);
-    if (tercerasAsignadas.length === 0) document.getElementById('noTercerasMsg').style.display = 'block';
+    if (tercerasAsignadas.length === 0) {
+        document.getElementById('noTercerasMsg').style.display = 'block';
+    }
     renderizarTercerasList();
 }
 
@@ -469,71 +721,109 @@ function generarImagen() {
     
     const areaCaptura = document.getElementById('cronogramaContainer');
     if (!areaCaptura) {
-        console.error("❌ ERROR: No se encontró 'cronogramaContainer'");
-        alert("ERROR: No se pudo encontrar el área de captura.");
+        alert("ERROR: No se encontró el área de captura.");
         return;
     }
     
-    // === CREAR CLON MANUAL ===
+    // Crear clon
     const clon = areaCaptura.cloneNode(true);
-    console.log("✅ Clon creado");
     
     // === ELIMINAR ELEMENTOS NO DESEADOS ===
-    // 1. Selectores
     clon.querySelectorAll('.cell-selectors').forEach(el => el.remove());
-    
-    // 2. Controles de terceras
     clon.querySelectorAll('.terceras-controls').forEach(el => el.remove());
-    
-    // 3. Botones de eliminar
     clon.querySelectorAll('.btn-remove-nurse').forEach(el => el.remove());
     
-    // 4. Mensaje "no hay terceras" - USAR querySelector en vez de getElementById
     const noTercerasMsg = clon.querySelector('#noTercerasMsg');
-    if (noTercerasMsg) {
-        noTercerasMsg.remove();
-        console.log("🗑️ Mensaje 'no hay terceras' eliminado");
-    }
+    if (noTercerasMsg) noTercerasMsg.remove();
     
-    // 5. Filas vacías
-    const filasAntes = clon.querySelectorAll('.grid-row').length;
+    // Eliminar filas vacías
     clon.querySelectorAll('.grid-row').forEach(row => {
         const tags = row.querySelectorAll('.nurse-tag');
-        if (tags.length === 0) {
-            row.remove();
-        }
+        if (tags.length === 0) row.remove();
     });
-    const filasDespues = clon.querySelectorAll('.grid-row').length;
-    console.log(`🏢 Filas: ${filasAntes} → ${filasDespues} (eliminadas: ${filasAntes - filasDespues})`);
     
-    // 6. Sección Terceras vacía
+    // Eliminar sección Terceras si está vacía
     const tercerasBlock = clon.querySelector('.terceras-grid-block');
     if (tercerasBlock) {
         const tagsTerceras = tercerasBlock.querySelectorAll('.nurse-tag');
-        if (tagsTerceras.length === 0) {
-            tercerasBlock.remove();
-            console.log("🗑️ Sección Terceras eliminada (vacía)");
-        }
+        if (tagsTerceras.length === 0) tercerasBlock.remove();
     }
     
-    // === AGREGAR CLON AL DOM TEMPORALMENTE ===
+    // === AJUSTAR ESTILOS PARA IMAGEN COMPACTA ===
     clon.id = 'clon-temporal-imagen';
-    clon.style.position = 'absolute';
-    clon.style.left = '-9999px';
-    clon.style.top = '0';
-    clon.style.width = '800px';
-    clon.style.padding = '20px';
-    clon.style.background = '#ffffff';
-    clon.style.zIndex = '-1';
+    clon.style.cssText = `
+        position: absolute;
+        left: -9999px;
+        top: 0;
+        width: 600px;
+        padding: 15px;
+        margin: 0;
+        background: #ffffff;
+        z-index: -1;
+        box-sizing: border-box;
+    `;
     
+    // Ajustar header
+    const gridHeader = clon.querySelector('.grid-table-header');
+    if (gridHeader) {
+        gridHeader.style.marginBottom = '10px';
+        gridHeader.style.paddingBottom = '10px';
+    }
+    
+    // Ajustar meta info (turno, horario, etc.)
+    const metaInfo = clon.querySelector('.grid-meta-info');
+    if (metaInfo) {
+        metaInfo.style.gap = '8px';
+        metaInfo.style.padding = '10px';
+        metaInfo.style.marginTop = '8px';
+    }
+    
+    // Ajustar filas
+    clon.querySelectorAll('.grid-row').forEach(row => {
+        row.style.marginBottom = '8px';
+    });
+    
+    // Ajustar celdas de asignaciones
+    clon.querySelectorAll('.grid-td-assignments').forEach(cell => {
+        cell.style.padding = '8px';
+        cell.style.minHeight = 'auto';
+    });
+    
+    // Ajustar tags de enfermeros
+    clon.querySelectorAll('.nurse-tag').forEach(tag => {
+        tag.style.margin = '4px 0';
+        tag.style.padding = '8px 12px';
+    });
+    
+    // Ajustar título de terceras
+    const tercerasTitle = clon.querySelector('.terceras-title-bar');
+    if (tercerasTitle) {
+        tercerasTitle.style.padding = '10px';
+        tercerasTitle.style.marginTop = '15px';
+    }
+    
+    // Ajustar contenedor de terceras
+    const tercerasContainer = clon.querySelector('.terceras-list-box');
+    if (tercerasContainer) {
+        tercerasContainer.style.padding = '10px';
+        tercerasContainer.style.gap = '6px';
+    }
+    
+    // Ajustar footer
+    const printFooter = clon.querySelector('.print-footer');
+    if (printFooter) {
+        printFooter.style.marginTop = '15px';
+        printFooter.style.paddingTop = '10px';
+        printFooter.style.fontSize = '0.75rem';
+    }
+    
+    // Agregar clon al DOM temporalmente
     document.body.appendChild(clon);
-    console.log("✅ Clon agregado al DOM");
     
     // === GENERAR IMAGEN ===
     if (typeof html2canvas === 'undefined') {
-        console.error("❌ html2canvas NO está cargado");
         clon.remove();
-        alert("ERROR: La librería html2canvas no está cargada.");
+        alert("ERROR: html2canvas no está cargado.");
         return;
     }
     
@@ -541,37 +831,75 @@ function generarImagen() {
         scale: 2,
         backgroundColor: "#ffffff",
         useCORS: true,
-        logging: false
+        logging: false,
+        width: 600
     }).then(canvas => {
-        console.log("✅ Imagen generada:", canvas.width, "x", canvas.height);
-        
-        // Remover clon del DOM
         clon.remove();
         
-        const lienzoDestino = document.getElementById('canvasImagen');
-        if (!lienzoDestino) {
-            alert("ERROR: No se encontró el contenedor de la imagen.");
-            return;
+        // === RECORTAR ESPACIOS BLANCOS ===
+        const ctx = canvas.getContext('2d');
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        let minX = canvas.width, maxX = 0;
+        let minY = canvas.height, maxY = 0;
+        let hasContent = false;
+        
+        // Buscar límites del contenido
+        for (let y = 0; y < canvas.height; y++) {
+            for (let x = 0; x < canvas.width; x++) {
+                const alpha = data[(y * canvas.width + x) * 4 + 3];
+                
+                // Si el pixel no es blanco puro (alpha > 0 o color != 255)
+                if (alpha > 0 || 
+                    data[(y * canvas.width + x) * 4] < 250 || 
+                    data[(y * canvas.width + x) * 4 + 1] < 250 || 
+                    data[(y * canvas.width + x) * 4 + 2] < 250) {
+                    
+                    hasContent = true;
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                }
+            }
         }
         
-        lienzoDestino.width = canvas.width;
-        lienzoDestino.height = canvas.height;
-        lienzoDestino.getContext('2d').drawImage(canvas, 0, 0);
+        // Si hay contenido, recortar
+        let canvasFinal = canvas;
+        if (hasContent) {
+            const width = maxX - minX + 1;
+            const height = maxY - minY + 1;
+            
+            // Crear canvas recortado
+            const canvasRecortado = document.createElement('canvas');
+            canvasRecortado.width = width;
+            canvasRecortado.height = height;
+            
+            const ctxRecortado = canvasRecortado.getContext('2d');
+            ctxRecortado.drawImage(canvas, minX, minY, width, height, 0, 0, width, height);
+            
+            canvasFinal = canvasRecortado;
+            console.log(`✂️ Imagen recortada: ${width}x${height} (de ${canvas.width}x${canvas.height})`);
+        }
+        
+        // Mostrar imagen
+        const lienzoDestino = document.getElementById('canvasImagen');
+        lienzoDestino.width = canvasFinal.width;
+        lienzoDestino.height = canvasFinal.height;
+        lienzoDestino.getContext('2d').drawImage(canvasFinal, 0, 0);
         
         const imgContainer = document.getElementById('imagenGeneradaContainer');
-        if (imgContainer) {
-            imgContainer.style.display = 'block';
-            imgContainer.scrollIntoView({ behavior: 'smooth' });
-            console.log("✅ Imagen mostrada");
-        }
+        imgContainer.style.display = 'block';
+        imgContainer.scrollIntoView({ behavior: 'smooth' });
+        
+        console.log("✅ Imagen generada y optimizada");
         
     }).catch(error => {
-        console.error("❌ ERROR:", error);
-        clon.remove(); // Limpiar en caso de error
-        alert(`Error al generar imagen:\n${error.message}`);
+        clon.remove();
+        alert(`Error al generar imagen: ${error.message}`);
     });
 }
-
 function descargarImagen() {
     const canvas = document.getElementById('canvasImagen');
     if (!canvas) return alert("Primero debe generar la imagen.");
@@ -631,14 +959,23 @@ function compartirWhatsAppTexto() {
     PISOS.forEach(piso => {
         if (asignaciones[piso] && asignaciones[piso].length > 0) {
             bloqueTexto += `*🏢 PISO ${piso}:*\n`;
-            asignaciones[piso].forEach(asig => bloqueTexto += `  • ${asig.texto}\n`);
+            asignaciones[piso].forEach(asig => {
+                let icono = '•';
+                if (asig.esCambioGuardia) icono = '🔄';
+                else if (asig.esExtra) icono = '➕';
+                bloqueTexto += `  ${icono} ${asig.texto}\n`;
+            });
             bloqueTexto += `\n`;
         }
     });
 
     if (tercerasAsignadas.length > 0) {
         bloqueTexto += `*📌 TERCERAS / ADICIONALES:*\n`;
-        tercerasAsignadas.forEach(t => bloqueTexto += `  • ${t}\n`);
+        tercerasAsignadas.forEach(t => {
+            // Manejar tanto objetos como strings (por compatibilidad)
+            const textoTercera = typeof t === 'object' ? t.texto : t;
+            bloqueTexto += `  📍 ${textoTercera}\n`;
+        });
     }
 
     window.open(`https://wa.me/?text=${encodeURIComponent(bloqueTexto)}`, '_blank');
@@ -660,6 +997,8 @@ function cambiarTurno() {
     tercerasAsignadas = [];
     diasCronograma = "";
     horarioActual = null;
+    fechasTemporales = [];
+    turnoEnProceso = "";
     document.getElementById('horarioDisplay').textContent = "";
     document.getElementById('diasDisplay').textContent = "";
     
