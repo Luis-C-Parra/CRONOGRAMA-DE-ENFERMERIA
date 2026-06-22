@@ -373,14 +373,73 @@ function eliminarTerceraIdx(idx) {
 function generarImagen() {
     const areaCaptura = document.getElementById('cronogramaContainer');
     
-    document.querySelectorAll('.cell-selectors').forEach(el => el.style.display = 'none');
-    document.querySelectorAll('.terceras-controls').forEach(el => el.style.display = 'none');
-    document.querySelectorAll('.btn-remove-nurse').forEach(el => el.style.display = 'none');
-
     html2canvas(areaCaptura, {
         scale: 2,
         backgroundColor: "#ffffff",
-        useCORS: true
+        useCORS: true,
+        logging: false,
+        onclone: (clonedDoc) => {
+            // === 1. OCULTAR TODOS LOS SELECTORES ===
+            clonedDoc.querySelectorAll('.cell-selectors').forEach(el => {
+                el.style.display = 'none';
+                el.style.visibility = 'hidden';
+                el.style.height = '0';
+                el.style.overflow = 'hidden';
+            });
+            
+            // === 2. OCULTAR CONTROLES DE TERCERAS ===
+            clonedDoc.querySelectorAll('.terceras-controls').forEach(el => {
+                el.style.display = 'none';
+            });
+            
+            // === 3. OCULTAR BOTONES DE ELIMINAR ===
+            clonedDoc.querySelectorAll('.btn-remove-nurse').forEach(el => {
+                el.style.display = 'none';
+            });
+            
+            // === 4. OCULTAR MENSAJE "NO HAY TERCERAS" ===
+            const noTercerasMsg = clonedDoc.getElementById('noTercerasMsg');
+            if (noTercerasMsg) noTercerasMsg.style.display = 'none';
+            
+            // === 5. OCULTAR FILAS DE PISOS VACÍOS ===
+            const filas = clonedDoc.querySelectorAll('.grid-row');
+            filas.forEach(row => {
+                // Buscar tags de enfermeros dentro de esta fila
+                const tagsEnfermeros = row.querySelectorAll('.nurse-tag');
+                
+                if (tagsEnfermeros.length === 0) {
+                    // No hay enfermeros en esta fila → ocultar COMPLETAMENTE
+                    row.style.display = 'none';
+                    row.style.visibility = 'hidden';
+                    row.style.height = '0';
+                    row.style.overflow = 'hidden';
+                    row.style.margin = '0';
+                    row.style.padding = '0';
+                    row.style.border = 'none';
+                }
+            });
+            
+            // === 6. OCULTAR SECCIÓN TERCERAS SI ESTÁ VACÍA ===
+            const tercerasBlock = clonedDoc.querySelector('.terceras-grid-block');
+            if (tercerasBlock) {
+                const tagsTerceras = tercerasBlock.querySelectorAll('.nurse-tag');
+                if (tagsTerceras.length === 0) {
+                    tercerasBlock.style.display = 'none';
+                }
+            }
+            
+            // === 7. LIMPIAR ESPACIOS VACÍOS DEBIDO A ELEMENTOS OCULTOS ===
+            clonedDoc.querySelectorAll('.grid-td-assignments').forEach(cell => {
+                // Si la celda solo tiene el selector (ya oculto), reducir altura
+                const tags = cell.querySelectorAll('.nurse-tag');
+                if (tags.length === 0) {
+                    cell.style.minHeight = '0';
+                    cell.style.padding = '5px';
+                }
+            });
+            
+            console.log('✅ onclone: Imagen preparada sin elementos vacíos');
+        }
     }).then(canvas => {
         const lienzoDestino = document.getElementById('canvasImagen');
         lienzoDestino.width = canvas.width;
@@ -389,17 +448,23 @@ function generarImagen() {
 
         document.getElementById('imagenGeneradaContainer').style.display = 'block';
         document.getElementById('imagenGeneradaContainer').scrollIntoView({ behavior: 'smooth' });
-
-        document.querySelectorAll('.cell-selectors').forEach(el => el.style.display = '');
-        document.querySelectorAll('.terceras-controls').forEach(el => el.style.display = '');
-        document.querySelectorAll('.btn-remove-nurse').forEach(el => el.style.display = '');
+        
+        console.log('✅ Imagen generada exitosamente');
+        
+    }).catch(error => {
+        console.error(" Error al generar imagen:", error);
+        alert("Error al generar la imagen. Intente nuevamente.");
     });
 }
 
 function descargarImagen() {
+    const canvas = document.getElementById('canvasImagen');
+    if (!canvas) return alert("Primero debe generar la imagen.");
+    
     const link = document.createElement('a');
-    link.download = `Planilla_Enfermeria_${turnoSeleccionado}.jpg`;
-    link.href = document.getElementById('canvasImagen').toDataURL('image/jpeg', 0.95);
+    const fecha = new Date().toLocaleDateString('es-AR').replace(/\//g, '-');
+    link.download = `Programa_Enfermeria_${turnoSeleccionado}_${fecha}.jpg`;
+    link.href = canvas.toDataURL('image/jpeg', 0.95);
     link.click();
 }
 
