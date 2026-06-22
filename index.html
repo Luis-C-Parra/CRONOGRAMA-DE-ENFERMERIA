@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>Armador de Programa de Enfermería</title>
     <link rel="stylesheet" href="css/styles.css?v=2">
     <script src="js/html2canvas.min.js"></script>
@@ -35,7 +36,7 @@
         <header class="app-header no-print">
             <h1>PROGRAMA DE ENFERMERÍA - TURNO <span id="turnoDisplay"></span></h1>
             <p class="header-author">Lic. Luis C. Parra</p>
-            <button class="btn-change-shift" onclick="location.reload()">🔄 Cambiar Turno / Reiniciar</button>
+            <button class="btn-change-shift" onclick="cambiarTurno()">🔄 Cambiar Turno</button>
         </header>
 
         <main class="app-content">
@@ -77,16 +78,17 @@
                             <option value="4C">4C</option>
                         </select>
                         <select id="selectTerceraTurnoSub" style="display: none;">
-                            <option value="MAÑANA">Mañana</option>
-                            <option value="TARDE">Tarde</option>
-                        </select>
+    <option value=""> Seleccionar Franja...</option>
+    <option value="MAÑANA">️☀️ Mañana</option>
+    <option value="TARDE">⛅ Tarde</option>
+</select>
                         <button class="btn-add" onclick="agregarTercera()">➕ Agregar Tercera</button>
                     </div>
                 </div>
 
                 <div class="print-footer">
-                    <p>Armador de Programa de Enfermería Automatizado © Lic. Luis C. Parra</p>
-                </div>
+    <p>Armador de Programa de Enfermería Automatizado<br>© Lic. Luis C. Parra</p>
+</div>
             </div>
 
             <div class="action-buttons no-print">

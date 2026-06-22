@@ -23,7 +23,7 @@ body {
     min-height: 100vh; 
 }
 
-/* --- SPLASH SCREEN LLAMATIVO --- */
+/* --- SPLASH SCREEN --- */
 .splash-container { 
     position: fixed; 
     top: 0; left: 0; 
@@ -46,9 +46,7 @@ body {
     100% { background-position: 0% 50%; }
 }
 
-.splash-content { 
-    animation: zoomIn 0.8s ease;
-}
+.splash-content { animation: zoomIn 0.8s ease; }
 
 .splash-icon {
     font-size: 5rem;
@@ -78,17 +76,34 @@ body {
 }
 
 .splash-content .author { 
-    font-size: 1.2rem; 
-    margin-bottom: 40px; 
+    font-size: 0.75rem; 
+    margin-top: auto;
+    margin-bottom: 20px;
     font-style: italic;
     font-weight: 300;
-    background: rgba(255,255,255,0.2);
-    padding: 8px 20px;
-    border-radius: 30px;
-    display: inline-block;
-    backdrop-filter: blur(10px);
+    opacity: 0.8;
+    letter-spacing: 0.5px;
+    color: rgba(255, 255, 255, 0.85);
 }
 
+/* Posicionar el autor abajo del splash */
+.splash-content { 
+    animation: zoomIn 0.8s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100%;
+    position: relative;
+}
+
+.splash-content .author {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+}
 .spinner { 
     width: 60px; height: 60px; 
     border: 5px solid rgba(255, 255, 255, 0.3); 
@@ -191,38 +206,16 @@ body {
     left: 100%;
 }
 
-.shift-options button:nth-child(1) { 
-    background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
-}
-.shift-options button:nth-child(2) { 
-    background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
-}
-.shift-options button:nth-child(3) { 
-    background: linear-gradient(135deg, #A8EDEA 0%, #FED6E3 100%);
-    color: #333;
-}
-.shift-options button:nth-child(4) { 
-    background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
-}
-.shift-options button:nth-child(5) { 
-    background: linear-gradient(135deg, #11998E 0%, #38EF7D 100%);
-}
+.shift-options button:nth-child(1) { background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); }
+.shift-options button:nth-child(2) { background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%); }
+.shift-options button:nth-child(3) { background: linear-gradient(135deg, #A8EDEA 0%, #FED6E3 100%); color: #333; }
+.shift-options button:nth-child(4) { background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%); }
+.shift-options button:nth-child(5) { background: linear-gradient(135deg, #11998E 0%, #38EF7D 100%); }
 
-.shift-options button:hover { 
-    transform: translateY(-5px) scale(1.02);
-    box-shadow: 0 15px 35px rgba(0,0,0,0.25);
-}
+.shift-options button:hover { transform: translateY(-5px) scale(1.02); box-shadow: 0 15px 35px rgba(0,0,0,0.25); }
+.shift-options button:active { transform: translateY(-2px) scale(1); }
 
-.shift-options button:active {
-    transform: translateY(-2px) scale(1);
-}
-
-.shift-options button .btn-icon {
-    font-size: 2rem;
-    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.2));
-}
-
-/* --- CABECERA APP LLAMATIVA --- */
+/* --- CABECERA APP --- */
 .app-header { 
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: #ffffff; 
@@ -254,12 +247,12 @@ body {
 }
 
 .header-author { 
-    font-size: 1rem; 
-    opacity: 0.95; 
+    font-size: 0.7rem; 
+    opacity: 0.9; 
     font-weight: 400;
     font-style: italic;
     background: rgba(255,255,255,0.15);
-    padding: 6px 16px;
+    padding: 3px 10px;
     border-radius: 20px;
     display: inline-block;
     backdrop-filter: blur(10px);
@@ -278,7 +271,7 @@ body {
     border-radius: 25px; 
     cursor: pointer; 
     font-weight: 700;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     transition: all 0.3s;
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
 }
@@ -294,7 +287,7 @@ body {
     padding: 0 15px; 
 }
 
-/* --- GRILLA UNIFICADA MODERNA --- */
+/* --- GRILLA UNIFICADA --- */
 .cronograma-render { 
     background: #ffffff; 
     padding: 25px; 
@@ -336,7 +329,7 @@ body {
     grid-template-columns: 1fr 1fr;
     gap: 12px;
     margin-top: 15px; 
-    font-size: 1rem; 
+    font-size: 0.95rem; 
     background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); 
     padding: 16px; 
     border-radius: 16px;
@@ -354,7 +347,7 @@ body {
 }
 
 .grid-meta-info strong {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     color: #6B7280;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -364,10 +357,10 @@ body {
 .highlight-text { 
     color: var(--primary); 
     font-weight: 800; 
-    font-size: 1.15rem;
+    font-size: 1.1rem;
 }
 
-/* --- TABLA DE PISOS --- */
+/* --- TABLA DE PISOS - DESKTOP Y MÓVIL --- */
 .cronograma-grid-table { 
     display: flex;
     flex-direction: column;
@@ -391,7 +384,7 @@ body {
 .grid-row:hover {
     box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
     transform: translateY(-2px);
-    border-color: var(--primary-light);
+    border-color: #667eea;
 }
 
 .grid-td-piso { 
@@ -417,7 +410,44 @@ body {
     min-height: 70px;
 }
 
-/* --- TAGS DE ENFERMEROS LLAMATIVOS --- */
+/* --- SELECTORES - FORZAR VISIBILIDAD EN DESKTOP --- */
+.cell-selectors { 
+    display: flex !important;
+    gap: 10px; 
+    margin-top: 10px; 
+    border-top: 2px dashed #D1D5DB; 
+    padding-top: 12px; 
+    width: 100%;
+}
+
+.cell-selectors select { 
+    flex: 1; 
+    padding: 14px 12px; 
+    font-size: 1rem; 
+    border: 2px solid #D1D5DB; 
+    border-radius: 12px;
+    background: white;
+    color: var(--text-dark);
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: 600;
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236366F1'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 24px;
+    padding-right: 40px;
+    min-width: 120px;
+}
+
+.cell-selectors select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+}
+
+/* --- TAGS DE ENFERMEROS --- */
 .nurse-tag { 
     background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%);
     border-left: 5px solid var(--accent-green); 
@@ -464,40 +494,6 @@ body {
     background: #EF4444;
     color: white;
     transform: rotate(90deg);
-}
-
-.cell-selectors { 
-    display: flex; 
-    gap: 10px; 
-    margin-top: 10px; 
-    border-top: 2px dashed #D1D5DB; 
-    padding-top: 12px; 
-}
-
-.cell-selectors select { 
-    flex: 1; 
-    padding: 14px 12px; 
-    font-size: 1rem; 
-    border: 2px solid #D1D5DB; 
-    border-radius: 12px;
-    background: white;
-    color: var(--text-dark);
-    cursor: pointer;
-    transition: all 0.3s;
-    font-weight: 600;
-    -webkit-appearance: none;
-    appearance: none;
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236366F1'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right 10px center;
-    background-size: 24px;
-    padding-right: 40px;
-}
-
-.cell-selectors select:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
 }
 
 /* --- SECCIÓN TERCERAS --- */
@@ -587,14 +583,14 @@ body {
 .print-footer { 
     text-align: center; 
     margin-top: 25px; 
-    font-size: 0.85rem; 
+    font-size: 0.75rem; 
     color: #9CA3AF; 
     border-top: 2px solid #E5E7EB; 
     padding-top: 18px;
     font-weight: 600;
 }
 
-/* --- BOTONES DE ACCIÓN LLAMATIVOS --- */
+/* --- BOTONES DE ACCIÓN --- */
 .action-buttons { 
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -635,13 +631,8 @@ body {
     left: 100%;
 }
 
-.btn-image { 
-    background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
-}
-
-.btn-share { 
-    background: linear-gradient(135deg, #EC4899 0%, #DB2777 100%);
-}
+.btn-image { background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); }
+.btn-share { background: linear-gradient(135deg, #EC4899 0%, #DB2777 100%); }
 
 .btn-action:hover {
     transform: translateY(-4px);
@@ -701,13 +692,8 @@ body {
     letter-spacing: 1px;
 }
 
-.btn-download { 
-    background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
-}
-
-.btn-share-img { 
-    background: linear-gradient(135deg, #10B981 0%, #059669 100%);
-}
+.btn-download { background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%); }
+.btn-share-img { background: linear-gradient(135deg, #10B981 0%, #059669 100%); }
 
 .btn-download:hover, .btn-share-img:hover {
     transform: translateY(-3px);
@@ -725,6 +711,7 @@ body {
     
     .app-header { padding: 25px 15px; }
     .app-header h1 { font-size: 1.2rem; padding-right: 0; }
+    .header-author { font-size: 0.75rem; padding: 3px 10px; }
     
     .btn-change-shift { 
         position: static; 
@@ -735,79 +722,46 @@ body {
     }
     
     .app-content { margin: 20px auto; padding: 0 12px; }
-    
     .cronograma-render { padding: 18px; border-radius: 20px; }
-    
     .grid-table-header h2 { font-size: 1.2rem; }
     
     .grid-meta-info { 
         grid-template-columns: 1fr;
         gap: 10px;
         padding: 14px;
+        font-size: 0.9rem;
     }
     
-    .grid-td-piso { 
-        font-size: 1.1rem;
-        padding: 14px;
-    }
-    
+    .grid-td-piso { font-size: 1.1rem; padding: 14px; }
     .grid-td-assignments { padding: 12px; }
-    
-    .nurse-tag { 
-        padding: 12px 14px;
-        font-size: 0.95rem;
-    }
+    .nurse-tag { padding: 12px 14px; font-size: 0.95rem; }
     
     .cell-selectors { 
         flex-direction: column; 
-        gap: 10px; 
+        gap: 10px;
+        display: flex !important;
     }
     
     .cell-selectors select {
         padding: 16px 12px;
         font-size: 1.05rem;
+        width: 100%;
     }
     
-    .action-buttons { 
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-    
-    .btn-action {
-        padding: 18px;
-        font-size: 1.05rem;
-    }
-    
-    .preview-actions { 
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-    
-    .btn-download, .btn-share-img {
-        padding: 16px;
-        font-size: 1rem;
-    }
-    
-    .shift-options button {
-        padding: 18px;
-        font-size: 1rem;
-    }
-    
-    .shift-options button .btn-icon {
-        font-size: 1.8rem;
-    }
+    .action-buttons { grid-template-columns: 1fr; gap: 12px; }
+    .btn-action { padding: 18px; font-size: 1.05rem; }
+    .preview-actions { grid-template-columns: 1fr; gap: 12px; }
+    .btn-download, .btn-share-img { padding: 16px; font-size: 1rem; }
+    .shift-options button { padding: 18px; font-size: 1rem; }
 }
 
 /* ========================================
-   💻 PANTALLAS GRANDES (DESKTOP)
+   💻 PANTALLAS GRANDES (DESKTOP) - FORZAR SELECTORES
    ======================================== */
 @media (min-width: 769px) {
     .splash-content h1 { font-size: 2.8rem; }
-    
     .app-header h1 { font-size: 1.8rem; }
-    
     .cronograma-render { padding: 40px; }
-    
     .grid-table-header h2 { font-size: 1.8rem; }
     
     .grid-meta-info { 
@@ -815,17 +769,19 @@ body {
         font-size: 1.1rem;
     }
     
+    /* FORZAR GRID EN DESKTOP */
     .cronograma-grid-table {
-        display: grid;
-        grid-template-columns: 200px 1fr;
+        display: grid !important;
+        grid-template-columns: 200px 1fr !important;
         border: 3px solid #E5E7EB;
         border-radius: 20px;
         overflow: hidden;
         background: white;
+        gap: 0 !important;
     }
     
     .grid-th {
-        display: flex;
+        display: flex !important;
         align-items: center;
         justify-content: center;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -838,36 +794,62 @@ body {
     }
     
     .grid-row {
-        display: grid;
-        grid-template-columns: 200px 1fr;
-        grid-column: span 2;
+        display: grid !important;
+        grid-template-columns: 200px 1fr !important;
+        grid-column: span 2 !important;
         border-bottom: 2px solid #E5E7EB;
-        border-radius: 0;
-        box-shadow: none;
-        margin: 0;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+        gap: 0 !important;
     }
     
     .grid-row:last-child { border-bottom: none; }
     
     .grid-td-piso {
-        border-right: 3px solid #E5E7EB;
-        border-bottom: none;
+        border-right: 3px solid #E5E7EB !important;
+        border-bottom: none !important;
+    }
+    
+    /* FORZAR SELECTORES VISIBLES EN DESKTOP */
+    .cell-selectors {
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 10px !important;
+        margin-top: 10px !important;
+        padding: 10px !important;
+        width: 100% !important;
+    }
+    
+    .cell-selectors select {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        flex: 1 !important;
+        min-width: 150px !important;
+        width: auto !important;
+    }
+    
+    .grid-td-assignments {
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: flex-start !important;
     }
     
     .terceras-controls {
-        flex-direction: row;
-        flex-wrap: wrap;
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
     }
     
     .terceras-controls select {
-        flex: 1;
-        min-width: 200px;
-        width: auto;
+        flex: 1 !important;
+        min-width: 200px !important;
+        width: auto !important;
     }
     
     .btn-add {
-        flex: 0 0 auto;
-        padding: 14px 28px;
+        flex: 0 0 auto !important;
+        padding: 14px 28px !important;
     }
 }
 
@@ -879,4 +861,111 @@ body {
     .no-print { display: none !important; }
     .cronograma-render { box-shadow: none; border: 2px solid #000; }
     .grid-td-piso { background: #E5E7EB !important; color: #000 !important; }
+}
+
+/* ========================================
+   🚨 FORZAR VISIBILIDAD DE FILAS EN PC
+   ======================================== */
+
+@media (min-width: 769px) {
+    /* Forzar que el contenedor de filas sea visible */
+    #pisosGridRows {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 0 !important;
+        width: 100% !important;
+        grid-column: 1 / -1 !important;
+    }
+    
+    /* Forzar que cada fila sea visible */
+    .grid-row {
+        display: grid !important;
+        grid-template-columns: 200px 1fr !important;
+        width: 100% !important;
+        min-height: 80px !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    
+    /* Forzar celdas visibles */
+    .grid-td-piso,
+    .grid-td-assignments {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    
+    .grid-td-piso {
+        justify-content: center !important;
+        align-items: center !important;
+    }
+    
+    .grid-td-assignments {
+        flex-direction: column !important;
+        justify-content: center !important;
+    }
+}
+
+/* ========================================
+   🏥 SELECTOR DE TURNO SADOFE - MEJORADO
+   ======================================== */
+
+#selectTerceraTurnoSub {
+    background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%) !important;
+    border: 2px solid #F59E0B !important;
+    color: #92400E !important;
+    font-weight: 700 !important;
+    padding: 14px !important;
+    border-radius: 12px !important;
+    transition: all 0.3s !important;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2) !important;
+}
+
+#selectTerceraTurnoSub:hover {
+    box-shadow: 0 6px 16px rgba(245, 158, 11, 0.3) !important;
+    transform: translateY(-2px) !important;
+}
+
+#selectTerceraTurnoSub:focus {
+    outline: none !important;
+    border-color: #D97706 !important;
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.2) !important;
+}
+
+/* Etiqueta visual cuando aparece */
+#selectTerceraTurnoSub::before {
+    content: ' Franja Horaria:';
+}
+
+/* Animación de aparición */
+#selectTerceraTurnoSub[style*="inline-block"] {
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* En móvil que ocupe todo el ancho */
+@media (max-width: 768px) {
+    #selectTerceraTurnoSub {
+        width: 100% !important;
+        font-size: 1.05rem !important;
+    }
+}
+
+/* En desktop en línea con los demás */
+@media (min-width: 769px) {
+    #selectTerceraTurnoSub {
+        flex: 1 !important;
+        min-width: 180px !important;
+        width: auto !important;
+    }
 }

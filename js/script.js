@@ -1,4 +1,4 @@
-// === CONFIGURACIÓN DE ENLACE CON TU GOOGLE SHEETS EN VIVO ===
+// === CONFIGURACIÓN ===
 const CONFIG = {
     SHEETS_API_ENDPOINT: 'https://script.google.com/macros/s/AKfycbygDIzPCUrIb86Lnww9Q1-U27lrr0oxKDxPmJLJHWuvzmgcJb0eve0fe_FDTSLqNijsMg/exec' 
 };
@@ -8,13 +8,30 @@ let listaSupervisoresDB = [];
 
 const PISOS = ["1B", "2B", "4B", "1C", "2C", "3C", "4C"];
 let turnoSeleccionado = "";
-let supervisorActual = "No Asignado/a";
+let supervisoresActuales = []; // ARRAY para múltiples supervisores
 let asignaciones = {}; 
 let tercerasAsignadas = [];
+let splashMostrado = false; // Control para no mostrar splash al cambiar turno
 
-// === FLUJO DE INICIALIZACIÓN ===
+/// Variable global
+
+
 document.addEventListener('DOMContentLoaded', function() {
+    const splash = document.getElementById('splashScreen');
     const modalBox = document.querySelector('.modal-box');
+    const shiftModal = document.getElementById('shiftModal');
+    
+    // Asegurar que el splash esté visible al inicio
+    if (splash) {
+        splash.style.display = 'flex';
+        splash.style.opacity = '1';
+    }
+    
+    // Ocultar el modal inicialmente
+    if (shiftModal) {
+        shiftModal.style.display = 'none';
+    }
+    
     if (modalBox) {
         modalBox.innerHTML = `
             <h2 id="modalStatusTitle">🔄 Cargando Base de Datos...</h2>
@@ -22,19 +39,24 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="spinner" style="border-top-color: #1a5276; margin-top: 20px;"></div>
         `;
     }
-
-    setTimeout(() => {
-        const splash = document.getElementById('splashScreen');
-        splash.style.transition = 'opacity 0.5s ease';
-        splash.style.opacity = '0';
-        
-        setTimeout(() => {
-            splash.style.display = 'none';
-            document.getElementById('shiftModal').style.display = 'flex';
-        }, 500);
-    }, 5000); 
-
+    
+    // Cargar datos
     fetchDatosDesdeSheets();
+    
+    // Después de 5 segundos, ocultar splash y mostrar modal
+    setTimeout(() => {
+        if (splash) {
+            splash.style.transition = 'opacity 0.5s ease';
+            splash.style.opacity = '0';
+            
+            setTimeout(() => {
+                splash.style.display = 'none';
+                if (shiftModal) {
+                    shiftModal.style.display = 'flex';
+                }
+            }, 500);
+        }
+    }, 5000);
 });
 
 async function fetchDatosDesdeSheets() {
@@ -42,38 +64,17 @@ async function fetchDatosDesdeSheets() {
         const response = await fetch(CONFIG.SHEETS_API_ENDPOINT);
         const data = await response.json();
         
-        console.log("📊 DATOS RECIBIDOS COMPLETOS:", data);
-        console.log("🔑 CLAVES del JSON:", Object.keys(data));
+        console.log("📊 DATOS RECIBIDOS:", data);
         
-        // DIAGNÓSTICO: Mostrar qué estructura tiene
-        if (data.enfermeros && data.enfermeros.length > 0) {
-            console.log("👥 Primer enfermero:", data.enfermeros[0]);
-            console.log("🔑 Propiedades del primer enfermero:", Object.keys(data.enfermeros[0]));
-        }
-        
-        // Intentar diferentes estructuras posibles
         if (data.enfermeros) {
             listaEnfermerosDB = data.enfermeros;
-        } else if (data.Enfermeros) {
-            listaEnfermerosDB = data.Enfermeros;
-        } else if (data.data) {
-            listaEnfermerosDB = data.data;
-        } else if (Array.isArray(data)) {
-            listaEnfermerosDB = data;
+            console.log(`✅ ${listaEnfermerosDB.length} enfermeros cargados`);
         }
         
         if (data.supervisores) {
             listaSupervisoresDB = data.supervisores;
-        } else if (data.Supervisores) {
-            listaSupervisoresDB = data.Supervisores;
+            console.log(`✅ ${listaSupervisoresDB.length} supervisores cargados`);
         }
-        
-        console.log(`✅ Enfermeros cargados: ${listaEnfermerosDB.length}`);
-        console.log(`✅ Supervisores cargados: ${listaSupervisoresDB.length}`);
-        
-        // MOSTRAR TURNOS ÚNICOS ENCONTRADOS
-        const turnosUnicos = [...new Set(listaEnfermerosDB.map(e => e.turno || e.Turno || e.TURNO || "SIN TURNO"))];
-        console.log("🎯 TURNOS ÚNICOS encontrados en la base:", turnosUnicos);
         
         restaurarBotonesModal();
         
@@ -107,9 +108,8 @@ function marcarErrorCarga() {
     }
 }
 
-// === FUNCIÓN PARA OBTENER EL TURNO DEL ENFERMERO (FLEXIBLE) ===
+// === FUNCIONES AUXILIARES ===
 function obtenerTurnoEnfermero(enfermero) {
-    // Probar diferentes nombres de propiedad
     return (enfermero.turno || 
             enfermero.Turno || 
             enfermero.TURNO || 
@@ -126,47 +126,49 @@ function obtenerNombreEnfermero(enfermero) {
             "Sin nombre").toString().trim();
 }
 
-// === FUNCIÓN PARA COMPARAR TURNOS DE FORMA FLEXIBLE ===
 function turnoCoincide(turnoEnfermero, turnoSeleccionado) {
     if (!turnoEnfermero || !turnoSeleccionado) return false;
     
     const t1 = turnoEnfermero.toString().toUpperCase().trim();
     const t2 = turnoSeleccionado.toString().toUpperCase().trim();
     
-    // Comparación exacta
     if (t1 === t2) return true;
     
-    // Comparación sin tildes
     const t1Normal = t1.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const t2Normal = t2.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     if (t1Normal === t2Normal) return true;
     
-    // Comparación parcial (por si dice "MAÑANA" vs "M" o "MANANA")
     if (t1.includes(t2) || t2.includes(t1)) return true;
     if (t1Normal.includes(t2Normal) || t2Normal.includes(t1Normal)) return true;
     
     return false;
 }
 
-// === CONTROLADORES DE TURNO ===
+// === SELECCIÓN DE TURNO - SIN SPLASH ===
 function selectTurno(turno) {
     turnoSeleccionado = turno.toUpperCase().trim();
+    
+    // Ocultar modal, mostrar app
     document.getElementById('shiftModal').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
     
     document.getElementById('turnoDisplay').textContent = turnoSeleccionado;
     document.getElementById('turnoPrint').textContent = turnoSeleccionado;
 
-    // Buscar supervisor
-    const supervisorEncontrado = listaSupervisoresDB.find(s => {
+    // Buscar supervisores
+    supervisoresActuales = listaSupervisoresDB.filter(s => {
         const turnoSup = (s.turno_supervision || s.Turno_Supervision || s.TURNO_SUPERVISION || "").toString();
         return turnoCoincide(turnoSup, turnoSeleccionado);
     });
     
-    supervisorActual = supervisorEncontrado 
-        ? (supervisorEncontrado.nombre || supervisorEncontrado.Nombre || "Sin nombre")
-        : "Sin supervisor designado";
-    document.getElementById('supervisorDisplay').textContent = supervisorActual;
+    if (supervisoresActuales.length > 0) {
+        const nombresSupervisores = supervisoresActuales.map(s => 
+            s.nombre || s.Nombre || "Sin nombre"
+        ).join(", ");
+        document.getElementById('supervisorDisplay').textContent = nombresSupervisores;
+    } else {
+        document.getElementById('supervisorDisplay').textContent = "Sin supervisor designado";
+    }
 
     if (turnoSeleccionado === "SADOFE") {
         document.getElementById('selectTerceraTurnoSub').style.display = 'inline-block';
@@ -176,21 +178,16 @@ function selectTurno(turno) {
     poblarSelectoresTerceras();
 }
 
+// === ARMAR TABLA DE PISOS ===
 function armarTablaPisos() {
-    console.log("🔧 INICIANDO armarTablaPisos()");
-    console.log("📊 listaEnfermerosDB:", listaEnfermerosDB);
-    console.log("🎯 turnoSeleccionado:", turnoSeleccionado);
-    
     const tableBody = document.getElementById('pisosGridRows');
     if (!tableBody) {
-        console.error("❌ ERROR: No se encontró el elemento 'pisosGridRows'");
-        alert("ERROR: No se pudo cargar la grilla de pisos. Recarga la página.");
+        console.error("❌ ERROR: No se encontró 'pisosGridRows'");
         return;
     }
     
     tableBody.innerHTML = '';
 
-    // FILTRADO FLEXIBLE
     const titulares = listaEnfermerosDB.filter(e => {
         const turno = obtenerTurnoEnfermero(e);
         return turnoCoincide(turno, turnoSeleccionado);
@@ -201,69 +198,68 @@ function armarTablaPisos() {
         return !turnoCoincide(turno, turnoSeleccionado);
     });
 
-    console.log(`\n🎯 FILTRADO PARA TURNO: ${turnoSeleccionado}`);
-    console.log(`✅ TITULARES encontrados: ${titulares.length}`, titulares);
-    console.log(`✅ EXTRAS encontrados: ${extras.length}`, extras);
+    console.log(`🎯 TURNO: ${turnoSeleccionado}`);
+    console.log(`✅ TITULARES: ${titulares.length}`);
+    console.log(`✅ EXTRAS: ${extras.length}`);
 
-    if (listaEnfermerosDB.length === 0) {
-        alert("⚠️ NO HAY DATOS CARGADOS\n\nLa base de datos de enfermeros está vacía.\n\nVerifica que:\n1. Google Sheets tenga datos\n2. El script de Google Apps esté publicado\n3. La URL del API sea correcta\n\nAbre la consola (F12) para más detalles.");
-    } else if (titulares.length === 0) {
-        alert(`⚠️ SIN TITULARES PARA "${turnoSeleccionado}"\n\nSe encontraron ${extras.length} enfermeros EXTRA pero 0 TITULARES.\n\nEsto pasa porque los turnos en Google Sheets no coinciden con "${turnoSeleccionado}".\n\nRevisa la consola (F12) para ver qué turnos hay en la base de datos.`);
-    }
-
-    PISOS.forEach((piso, index) => {
-        console.log(`\n📍 Creando fila para piso ${piso} (${index + 1}/${PISOS.length})`);
-        
+    PISOS.forEach(piso => {
         asignaciones[piso] = [];
 
         const row = document.createElement('div');
         row.className = 'grid-row';
         
-        // Opciones para titulares
-        let opcionesTitulares = '<option value="">+ Titular</option>';
+        const pisoCell = document.createElement('div');
+        pisoCell.className = 'grid-td-piso';
+        pisoCell.textContent = piso;
+        
+        const assignmentsCell = document.createElement('div');
+        assignmentsCell.className = 'grid-td-assignments';
+        
+        const tagsContainer = document.createElement('div');
+        tagsContainer.id = `cell-list-${piso}`;
+        tagsContainer.style.cssText = 'display: contents;';
+        
+        // Contenedor de selectores
+        const selectorsContainer = document.createElement('div');
+        selectorsContainer.className = 'cell-selectors no-print';
+        
+        // Select de titulares
+        const selectTitular = document.createElement('select');
+        selectTitular.onchange = function() { registrarEnfermero(piso, this, false); };
+        
+        let htmlTitular = '<option value="">+ Titular</option>';
         if (titulares.length === 0) {
-            opcionesTitulares = '<option value="" disabled>⚠️ Sin titulares</option>';
+            htmlTitular = '<option value="" disabled>⚠️ Sin titulares</option>';
         } else {
             titulares.forEach(e => {
-                const nombre = obtenerNombreEnfermero(e);
-                opcionesTitulares += `<option value="${nombre}">${nombre}</option>`;
+                htmlTitular += `<option value="${obtenerNombreEnfermero(e)}">${obtenerNombreEnfermero(e)}</option>`;
             });
         }
+        selectTitular.innerHTML = htmlTitular;
         
-        // Opciones para extras
-        let opcionesExtras = '<option value="">+ Extra</option>';
+        // Select de extras
+        const selectExtra = document.createElement('select');
+        selectExtra.onchange = function() { registrarEnfermero(piso, this, true); };
+        
+        let htmlExtra = '<option value="">+ Extra</option>';
         if (extras.length === 0) {
-            opcionesExtras = '<option value="" disabled>⚠️ Sin extras</option>';
+            htmlExtra = '<option value="" disabled>⚠️ Sin extras</option>';
         } else {
             extras.forEach(e => {
-                const nombre = obtenerNombreEnfermero(e);
-                const turno = obtenerTurnoEnfermero(e);
-                opcionesExtras += `<option value="${nombre}">${nombre} (${turno})</option>`;
+                htmlExtra += `<option value="${obtenerNombreEnfermero(e)}">${obtenerNombreEnfermero(e)} (${obtenerTurnoEnfermero(e)})</option>`;
             });
         }
-
-        row.innerHTML = `
-            <div class="grid-td-piso">${piso}</div>
-            <div class="grid-td-assignments">
-                <div id="cell-list-${piso}" style="display:contents;"></div>
-                
-                <div class="cell-selectors no-print" style="display: flex; gap: 10px; margin-top: 10px; border-top: 2px dashed #D1D5DB; padding-top: 12px;">
-                    <select id="select-titular-${piso}" onchange="registrarEnfermero('${piso}', this, false)" style="flex: 1; padding: 14px 12px; font-size: 1rem; border: 2px solid #D1D5DB; border-radius: 12px; background: white; font-weight: 600;">
-                        ${opcionesTitulares}
-                    </select>
-                    <select id="select-extra-${piso}" onchange="registrarEnfermero('${piso}', this, true)" style="flex: 1; padding: 14px 12px; font-size: 1rem; border: 2px solid #D1D5DB; border-radius: 12px; background: white; font-weight: 600;">
-                        ${opcionesExtras}
-                    </select>
-                </div>
-            </div>
-        `;
+        selectExtra.innerHTML = htmlExtra;
         
-        console.log(`✅ Fila ${piso} creada exitosamente`);
+        // Ensamblar
+        selectorsContainer.appendChild(selectTitular);
+        selectorsContainer.appendChild(selectExtra);
+        assignmentsCell.appendChild(tagsContainer);
+        assignmentsCell.appendChild(selectorsContainer);
+        row.appendChild(pisoCell);
+        row.appendChild(assignmentsCell);
         tableBody.appendChild(row);
     });
-    
-    console.log("✅ armarTablaPisos() completado");
-    console.log(`📊 Total de filas creadas: ${PISOS.length}`);
 }
 
 function registrarEnfermero(piso, selectElement, esExtra) {
@@ -333,7 +329,12 @@ function agregarTercera() {
 
     if (turnoSeleccionado === "SADOFE") {
         const subTurnoSadofe = document.getElementById('selectTerceraTurnoSub').value;
-        plantillaTercera += ` (${subTurnoSadofe})`;
+        if (subTurnoSadofe) {
+            plantillaTercera += ` [${subTurnoSadofe === 'MAÑANA' ? '☀️' : '⛅'} ${subTurnoSadofe}]`;
+        } else {
+            alert("⚠️ Por favor seleccione la franja horaria (Mañana o Tarde) para SADOFE.");
+            return;
+        }
     }
 
     tercerasAsignadas.push(plantillaTercera);
@@ -342,6 +343,8 @@ function agregarTercera() {
 
     document.getElementById('selectTerceraNurse').value = "";
     document.getElementById('selectTerceraPiso').value = "";
+    
+    // No resetear el select de turno SADOFE para facilitar agregar múltiples
 }
 
 function renderizarTercerasList() {
@@ -414,7 +417,7 @@ function compartirImagenWhatsApp() {
                 await navigator.share({
                     files: [archivoImagen],
                     title: `Programa Enfermería - ${turnoSeleccionado}`,
-                    text: `Distribución del personal. Supervisor/a: ${supervisorActual}.`
+                    text: `Distribución del personal. Supervisor/a: ${supervisoresActuales.map(s => s.nombre || s.Nombre).join(", ")}.`
                 });
             } catch (err) {
                 console.log("Compartido cancelado o error en transferencia:", err);
@@ -426,8 +429,12 @@ function compartirImagenWhatsApp() {
 }
 
 function compartirWhatsAppTexto() {
+    const nombresSupervisores = supervisoresActuales.length > 0 
+        ? supervisoresActuales.map(s => s.nombre || s.Nombre).join(", ")
+        : "Sin supervisor";
+    
     let bloqueTexto = `📋 *DISTRIBUCIÓN DE ENFERMERÍA - TURNO ${turnoSeleccionado}*\n`;
-    bloqueTexto += `⭐ *Supervisor/a:* ${supervisorActual}\n`;
+    bloqueTexto += `⭐ *Supervisor/a:* ${nombresSupervisores}\n`;
     bloqueTexto += `📅 _Fecha: ${new Date().toLocaleDateString('es-AR')}_\n\n`;
 
     PISOS.forEach(piso => {
@@ -446,4 +453,72 @@ function compartirWhatsAppTexto() {
     }
 
     window.open(`https://wa.me/?text=${encodeURIComponent(bloqueTexto)}`, '_blank');
+}
+// === CAMBIAR TURNO SIN SPLASH ===
+function cambiarTurno() {
+    // Ocultar app
+    const mainApp = document.getElementById('mainApp');
+    if (mainApp) mainApp.style.display = 'none';
+    
+    // Ocultar imagen generada
+    const imgContainer = document.getElementById('imagenGeneradaContainer');
+    if (imgContainer) imgContainer.style.display = 'none';
+    
+    // Resetear variables
+    turnoSeleccionado = "";
+    supervisoresActuales = [];
+    asignaciones = {};
+    tercerasAsignadas = [];
+    
+    // Limpiar displays
+    const turnoDisplay = document.getElementById('turnoDisplay');
+    const turnoPrint = document.getElementById('turnoPrint');
+    const supervisorDisplay = document.getElementById('supervisorDisplay');
+    
+    if (turnoDisplay) turnoDisplay.textContent = "";
+    if (turnoPrint) turnoPrint.textContent = "";
+    if (supervisorDisplay) supervisorDisplay.textContent = "Buscando...";
+    
+    const selectTerceraTurnoSub = document.getElementById('selectTerceraTurnoSub');
+    if (selectTerceraTurnoSub) selectTerceraTurnoSub.style.display = 'none';
+    
+    // Limpiar grilla
+    const pisosGridRows = document.getElementById('pisosGridRows');
+    if (pisosGridRows) pisosGridRows.innerHTML = '';
+    
+    // Limpiar selectores
+    const selectTerceraNurse = document.getElementById('selectTerceraNurse');
+    const selectTerceraPiso = document.getElementById('selectTerceraPiso');
+    if (selectTerceraNurse) selectTerceraNurse.value = "";
+    if (selectTerceraPiso) selectTerceraPiso.value = "";
+    
+    // Mostrar mensaje "No hay personal"
+    const noTercerasMsg = document.getElementById('noTercerasMsg');
+    if (noTercerasMsg) noTercerasMsg.style.display = 'block';
+    
+    const tercerasContainer = document.getElementById('tercerasContainer');
+    if (tercerasContainer) {
+        tercerasContainer.querySelectorAll('.nurse-tag').forEach(el => el.remove());
+    }
+    
+    // Mostrar SOLO modal (sin splash)
+    const shiftModal = document.getElementById('shiftModal');
+    if (shiftModal) {
+        shiftModal.style.display = 'flex';
+        
+        // Restaurar botones
+        const modalBox = document.querySelector('.modal-box');
+        if (modalBox) {
+            modalBox.innerHTML = `
+                <h2>Seleccione el Turno a Armar</h2>
+                <div class="shift-options">
+                    <button onclick="selectTurno('MAÑANA')">☀️ MAÑANA</button>
+                    <button onclick="selectTurno('TARDE')">⛅ TARDE</button>
+                    <button onclick="selectTurno('NOCHE A')">🌌 NOCHE A</button>
+                    <button onclick="selectTurno('NOCHE B')">🌌 NOCHE B</button>
+                    <button onclick="selectTurno('SADOFE')">🏥 SADOFE</button>
+                </div>
+            `;
+        }
+    }
 }
