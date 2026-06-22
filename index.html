@@ -4,19 +4,344 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Armador de Programa de Enfermería</title>
-    <link rel="stylesheet" href="css/styles.css?v=20260622">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body { 
+            font-family: 'Segoe UI', Roboto, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-attachment: fixed;
+            color: #111827; 
+            min-height: 100vh; 
+        }
+        
+        .splash-container { 
+            position: fixed; top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            background-size: 400% 400%;
+            animation: gradientBG 8s ease infinite;
+            color: #fff; 
+            display: flex; justify-content: center; align-items: center; 
+            z-index: 9999; text-align: center; padding: 20px;
+        }
+        
+        @keyframes gradientBG {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        .splash-icon {
+            font-size: 5rem;
+            margin-bottom: 25px;
+            animation: bounce 2s ease-in-out infinite;
+            display: inline-block;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+        
+        .splash-content h1 { 
+            font-size: 1.8rem; font-weight: 900; 
+            margin-bottom: 15px; letter-spacing: 2px;
+            text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            line-height: 1.2;
+        }
+        
+        .splash-content .author { 
+            font-size: 1.1rem; margin-bottom: 35px; 
+            font-style: italic; font-weight: 300;
+            background: rgba(255,255,255,0.2);
+            padding: 8px 20px; border-radius: 30px;
+            display: inline-block;
+        }
+        
+        .spinner { 
+            width: 60px; height: 60px; 
+            border: 5px solid rgba(255,255,255,0.3); 
+            border-top: 5px solid #fff; 
+            border-radius: 50%; 
+            margin: 0 auto; 
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .modal-overlay { 
+            position: fixed; top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.8); 
+            backdrop-filter: blur(10px);
+            display: flex; justify-content: center; align-items: center; 
+            z-index: 9990; padding: 15px;
+        }
+        
+        .modal-box { 
+            background: #fff; padding: 30px 25px; 
+            border-radius: 24px; text-align: center; 
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5); 
+            max-width: 440px; width: 100%;
+        }
+        
+        .modal-box h2 { 
+            margin-bottom: 25px; color: #6366F1; 
+            font-size: 1.5rem; font-weight: 800;
+            text-transform: uppercase;
+        }
+        
+        .shift-options { display: flex; flex-direction: column; gap: 12px; }
+        
+        .shift-options button { 
+            padding: 20px; font-size: 1.1rem; font-weight: 800; 
+            border: none; border-radius: 16px; cursor: pointer; 
+            color: white; box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            text-transform: uppercase; letter-spacing: 1px;
+            transition: all 0.3s;
+        }
+        
+        .shift-options button:nth-child(1) { background: linear-gradient(135deg, #FF6B6B, #FF8E53); }
+        .shift-options button:nth-child(2) { background: linear-gradient(135deg, #4FACFE, #00F2FE); }
+        .shift-options button:nth-child(3) { background: linear-gradient(135deg, #A8EDEA, #FED6E3); color: #333; }
+        .shift-options button:nth-child(4) { background: linear-gradient(135deg, #667EEA, #764BA2); }
+        .shift-options button:nth-child(5) { background: linear-gradient(135deg, #11998E, #38EF7D); }
+        
+        .shift-options button:hover { transform: translateY(-5px) scale(1.02); }
+        
+        .app-header { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff; padding: 30px 20px; text-align: center; 
+            position: relative; box-shadow: 0 10px 30px rgba(102,126,234,0.4);
+        }
+        
+        .app-header h1 { font-size: 1.4rem; font-weight: 900; margin-bottom: 8px; }
+        
+        .header-author { 
+            font-size: 1rem; background: rgba(255,255,255,0.2);
+            padding: 6px 16px; border-radius: 20px;
+            display: inline-block;
+        }
+        
+        .btn-change-shift { 
+            position: absolute; right: 15px; top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.25); 
+            border: 2px solid rgba(255,255,255,0.4);
+            color: #fff; padding: 10px 16px; border-radius: 25px; 
+            cursor: pointer; font-weight: 700;
+        }
+        
+        .app-content { max-width: 1000px; margin: 30px auto; padding: 0 15px; }
+        
+        .cronograma-render { 
+            background: #fff; padding: 25px; 
+            border-radius: 24px; 
+            box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+        }
+        
+        .grid-table-header { 
+            text-align: center; padding-bottom: 20px; 
+            margin-bottom: 25px; border-bottom: 3px solid #E5E7EB;
+        }
+        
+        .grid-table-header h2 { 
+            color: #6366F1; font-size: 1.4rem; font-weight: 800;
+            margin-bottom: 15px; text-transform: uppercase;
+        }
+        
+        .grid-meta-info { 
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 12px; margin-top: 15px; font-size: 1rem; 
+            background: linear-gradient(135deg, #F3F4F6, #E5E7EB); 
+            padding: 16px; border-radius: 16px;
+        }
+        
+        .grid-meta-info p {
+            background: white; padding: 12px; border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            display: flex; flex-direction: column; gap: 4px;
+        }
+        
+        .grid-meta-info strong {
+            font-size: 0.75rem; color: #6B7280;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        
+        .highlight-text { color: #6366F1; font-weight: 800; font-size: 1.15rem; }
+        
+        .cronograma-grid-table { 
+            display: flex; flex-direction: column;
+            gap: 12px; margin-top: 20px;
+        }
+        
+        .grid-th { display: none; }
+        
+        .grid-row { 
+            background: linear-gradient(135deg, #fff, #F9FAFB);
+            border-radius: 16px; overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            border: 2px solid #E5E7EB;
+            transition: all 0.3s;
+        }
+        
+        .grid-td-piso { 
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff; font-weight: 800; font-size: 1.2rem;
+            padding: 16px; letter-spacing: 2px;
+            text-align: center;
+        }
+        
+        .grid-td-assignments { 
+            padding: 15px; display: flex; flex-direction: column; 
+            gap: 10px; background: #FAFBFC; min-height: 70px;
+        }
+        
+        .nurse-tag { 
+            background: linear-gradient(135deg, #D1FAE5, #A7F3D0);
+            border-left: 5px solid #10B981; 
+            padding: 12px 16px; border-radius: 12px; 
+            font-size: 1rem; font-weight: 600; 
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 2px 8px rgba(16,185,129,0.15);
+        }
+        
+        .nurse-tag.is-extra { 
+            background: linear-gradient(135deg, #FEF3C7, #FDE68A);
+            border-left-color: #F59E0B;
+        }
+        
+        .btn-remove-nurse { 
+            background: rgba(239,68,68,0.15); border: none; 
+            color: #EF4444; cursor: pointer; font-weight: bold; 
+            padding: 8px 12px; border-radius: 50%;
+            margin-left: 10px;
+        }
+        
+        .btn-remove-nurse:hover { background: #EF4444; color: white; }
+        
+        .cell-selectors { 
+            display: flex; gap: 10px; margin-top: 10px; 
+            border-top: 2px dashed #D1D5DB; padding-top: 12px; 
+        }
+        
+        .cell-selectors select { 
+            flex: 1; padding: 14px 12px; font-size: 1rem; 
+            border: 2px solid #D1D5DB; border-radius: 12px;
+            background: white; font-weight: 600;
+        }
+        
+        .terceras-grid-block { 
+            margin-top: 25px; border-radius: 20px; 
+            overflow: hidden; box-shadow: 0 8px 25px rgba(139,92,246,0.15);
+        }
+        
+        .terceras-title-bar { 
+            background: linear-gradient(135deg, #8B5CF6, #EC4899);
+            color: white; padding: 18px; font-weight: 800; 
+            text-align: center; font-size: 1.1rem;
+            text-transform: uppercase;
+        }
+        
+        .terceras-list-box { 
+            padding: 18px; background: #fff; 
+            display: flex; flex-direction: column; gap: 10px; 
+            min-height: 70px;
+        }
+        
+        .empty-msg { color: #9CA3AF; font-style: italic; text-align: center; padding: 15px; }
+        
+        .terceras-controls { 
+            padding: 18px; background: #F9FAFB;
+            border-top: 2px solid #E5E7EB;
+            display: flex; flex-direction: column; gap: 12px;
+        }
+        
+        .terceras-controls select { 
+            width: 100%; padding: 14px; 
+            border: 2px solid #D1D5DB; border-radius: 12px;
+            font-size: 1rem; background: white; font-weight: 600;
+        }
+        
+        .btn-add { 
+            background: linear-gradient(135deg, #10B981, #059669);
+            color: white; border: none; padding: 16px; 
+            border-radius: 12px; font-weight: 800; font-size: 1.05rem;
+            cursor: pointer; text-transform: uppercase;
+        }
+        
+        .print-footer { 
+            text-align: center; margin-top: 25px; 
+            font-size: 0.85rem; color: #9CA3AF; 
+            border-top: 2px solid #E5E7EB; padding-top: 18px;
+        }
+        
+        .action-buttons { 
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 15px; margin-top: 25px; 
+        }
+        
+        .btn-action { 
+            padding: 18px 24px; font-size: 1rem; font-weight: 800; 
+            border: none; border-radius: 16px; cursor: pointer; 
+            color: white; box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        
+        .btn-image { background: linear-gradient(135deg, #3B82F6, #2563EB); }
+        .btn-share { background: linear-gradient(135deg, #EC4899, #DB2777); }
+        
+        #imagenGeneradaContainer { 
+            margin-top: 25px; text-align: center; 
+            background: white; padding: 25px; 
+            border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+        }
+        
+        #canvasImagen { 
+            max-width: 100%; margin: 20px 0; 
+            border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+        }
+        
+        .preview-actions { 
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 12px; margin-top: 20px; 
+        }
+        
+        .btn-download, .btn-share-img { 
+            color: white; border: none; padding: 16px 20px; 
+            border-radius: 16px; font-weight: 800; cursor: pointer;
+            text-transform: uppercase;
+        }
+        
+        .btn-download { background: linear-gradient(135deg, #3B82F6, #1D4ED8); }
+        .btn-share-img { background: linear-gradient(135deg, #10B981, #059669); }
+        
+        .no-print { display: block; }
+        
+        @media (max-width: 768px) {
+            .splash-content h1 { font-size: 1.6rem; }
+            .splash-icon { font-size: 4rem; }
+            .app-header h1 { font-size: 1.2rem; }
+            .btn-change-shift { position: static; margin-top: 15px; width: 100%; transform: none; }
+            .grid-meta-info { grid-template-columns: 1fr; }
+            .cell-selectors { flex-direction: column; }
+            .action-buttons, .preview-actions { grid-template-columns: 1fr; }
+            .shift-options button { padding: 18px; font-size: 1rem; }
+        }
+    </style>
 </head>
 <body>
 
     <div id="splashScreen" class="splash-container">
-    <div class="splash-content">
-        <div class="splash-icon">⚕️</div>
-        <h1>ARMADOR DE PROGRAMA<br>DE ENFERMERÍA</h1>
-        <p class="author">Lic. Luis C. Parra</p>
-        <div class="spinner"></div>
+        <div class="splash-content">
+            <div class="splash-icon">⚕️</div>
+            <h1>ARMADOR DE PROGRAMA<br>DE ENFERMERÍA</h1>
+            <p class="author">Lic. Luis C. Parra</p>
+            <div class="spinner"></div>
+        </div>
     </div>
-</div>
 
     <div id="shiftModal" class="modal-overlay" style="display: none;">
         <div class="modal-box">
