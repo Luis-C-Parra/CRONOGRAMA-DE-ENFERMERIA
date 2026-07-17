@@ -21,18 +21,39 @@
 
     
 
-    <div id="shiftModal" class="modal-overlay" style="display: none;">
-        <div class="modal-box">
-            <h2 id="modalStatusTitle">Seleccione el Turno a Armar</h2>
-            <div class="shift-options">
-                <button onclick="selectTurno('MAÑANA')">☀️ MAÑANA</button>
-                <button onclick="selectTurno('TARDE')">⛅ TARDE</button>
-                <button onclick="selectTurno('NOCHE A')">🌌 NOCHE A</button>
-                <button onclick="selectTurno('NOCHE B')">🌌 NOCHE B</button>
-                <button onclick="selectTurno('SADOFE')">🏥 SADOFE</button>
+    <div id="shiftModal" class="modal-overlay">
+    <div class="modal-box">
+        <h2 id="modalStatusTitle">🔐 Acceso al Sistema</h2>
+        <div class="shift-options">
+            <input type="password" id="passInput" placeholder="Ingrese su contraseña" style="width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 6px; border: 1px solid #ccc;">
+            
+            <div id="turnoOptions" style="display:none;">
+                <p>Seleccione su Turno:</p>
+                <button onclick="procesarAcceso('MAÑANA')">☀️ MAÑANA</button>
+                <button onclick="procesarAcceso('TARDE')">⛅ TARDE</button>
+                <button onclick="procesarAcceso('NOCHE A')">🌌 NOCHE A</button>
+                <button onclick="procesarAcceso('NOCHE B')">🌌 NOCHE B</button>
+                <button onclick="procesarAcceso('SADOFE')">🏥 SADOFE</button>
             </div>
+            
+            <button id="btnVerificar" class="btn-add" onclick="validarYMostrarTurnos()">VERIFICAR CONTRASEÑA</button>
         </div>
     </div>
+</div>
+
+<script>
+function validarYMostrarTurnos() {
+    const pass = document.getElementById('passInput').value;
+    if (verificarCredenciales(pass)) {
+        document.getElementById('turnoOptions').style.display = 'block';
+        document.getElementById('btnVerificar').style.display = 'none';
+        document.getElementById('passInput').style.display = 'none';
+        document.getElementById('modalStatusTitle').textContent = "Bienvenido " + usuarioActual.nombre;
+    } else {
+        alert("Contraseña incorrecta o no autorizada.");
+    }
+}
+</script>
 
     <div id="mainApp" style="display: none;">
         <header class="app-header no-print">

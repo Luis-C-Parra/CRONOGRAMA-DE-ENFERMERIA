@@ -1,6 +1,6 @@
 // === CONFIGURACIÓN ===
 const CONFIG = {
-    SHEETS_API_ENDPOINT: 'https://script.google.com/macros/s/AKfycbygDIzPCUrIb86Lnww9Q1-U27lrr0oxKDxPmJLJHWuvzmgcJb0eve0fe_FDTSLqNijsMg/exec' 
+    SHEETS_API_ENDPOINT: 'https://script.google.com/macros/s/AKfycbyqC5_MV6Pug-2KGG1jOlw-cYgtkNvP8NiZHZyStZJKUkDfjAo8BIv7Cs22YbgBXLoTAA/exec' 
 };
 
 
@@ -31,6 +31,9 @@ let pisoActual = "";
 let nombreActual = "";
 let esExtraActual = false;
 let franjaActual = "";
+
+// Usuario logueado (Supervisor/a o Referente) para el sistema de contraseñas
+let usuarioActual = null; // { tipo: 'supervisor' | 'referente', nombre, supervisorAsignado }
 
 const PISOS = ["1B", "2B", "4B", "1C", "2C", "3C", "4C"];
 
@@ -81,18 +84,201 @@ async function fetchDatosDesdeSheets() {
         if (data.enfermeros) listaEnfermerosDB = data.enfermeros;
         if (data.supervisores) listaSupervisoresDB = data.supervisores;
         
-        restaurarBotonesModal();
+        mostrarSelectorTipoUsuario();
     } catch (error) {
         console.error("❌ ERROR:", error);
         marcarErrorCarga();
     }
 }
 
+// === LOGIN: SELECCIÓN DE TIPO DE USUARIO (SUPERVISOR / REFERENTE) ===
+function mostrarSelectorTipoUsuario() {
+    const modalBox = document.querySelector('.modal-box');
+    if (!modalBox) return;
+    modalBox.innerHTML = `
+        <h2>¿Quién arma el programa?</h2>
+        <p style="color:#7f8c8d; margin-top:5px;">Iniciá sesión para continuar.</p>
+        <div class="shift-options">
+            <button onclick="mostrarLoginSupervisor()">🧑‍⚕️ Soy Supervisor/a</button>
+            <button onclick="mostrarLoginReferente()">🩺 Soy Referente</button>
+        </div>
+    `;
+}
+
+function mostrarLoginSupervisor() {
+    const modalBox = document.querySelector('.modal-box');
+    if (!modalBox) return;
+
+    if (listaSupervisoresDB.length === 0) {
+        modalBox.innerHTML = `
+            <h2>⚠️ Sin supervisores cargados</h2>
+            <p style="color:#7f8c8d; margin-top:10px;">No hay supervisores en la base de datos.</p>
+            <div class="shift-options" style="margin-top:15px;">
+                <button onclick="mostrarSelectorTipoUsuario()">⬅️ Volver</button>
+            </div>
+        `;
+        return;
+    }
+
+    let opciones = '<option value="">-- Seleccioná tu nombre --</option>';
+    listaSupervisoresDB.forEach(s => {
+        const nombre = obtenerNombreSupervisor(s);
+        opciones += `<option value="${nombre}">${nombre}</option>`;
+    });
+
+    modalBox.innerHTML = `
+        <h2>🧑‍⚕️ Ingreso Supervisor/a</h2>
+        <div style="margin-top:15px; text-align:left;">
+            <label style="font-size:0.9em; color:#6B7280;">Nombre</label>
+            <select id="loginSupervisorSelect" style="width:100%; padding:8px; margin-top:5px; margin-bottom:12px; box-sizing:border-box;">${opciones}</select>
+            <label style="font-size:0.9em; color:#6B7280;">Contraseña</label>
+            <input type="password" id="loginSupervisorPass" style="width:100%; padding:8px; margin-top:5px; box-sizing:border-box;" placeholder="Contraseña" onkeydown="if(event.key==='Enter') validarLoginSupervisor();">
+            <p id="loginSupervisorError" style="color:#e74c3c; margin-top:8px; display:none;">⚠️ Nombre o contraseña incorrectos.</p>
+        </div>
+        <div class="shift-options" style="margin-top:15px;">
+            <button onclick="validarLoginSupervisor()">Ingresar</button>
+            <button onclick="mostrarSelectorTipoUsuario()">⬅️ Volver</button>
+        </div>
+    `;
+}
+
+function validarLoginSupervisor() {
+    const nombre = document.getElementById('loginSupervisorSelect').value;
+    const pass = document.getElementById('loginSupervisorPass').value.trim();
+    const errorMsg = document.getElementById('loginSupervisorError');
+
+    if (!nombre) { alert("⚠️ Seleccioná tu nombre."); return; }
+
+    const supervisor = listaSupervisoresDB.find(s => obtenerNombreSupervisor(s) === nombre);
+    const passGuardada = supervisor ? obtenerPasswordSupervisor(supervisor) : "";
+
+    if (!supervisor || !passGuardada || pass !== passGuardada) {
+        if (errorMsg) errorMsg.style.display = 'block';
+        return;
+    }
+
+    usuarioActual = { tipo: 'supervisor', nombre: nombre, supervisorAsignado: nombre };
+    restaurarBotonesModal();
+}
+
+// === LOGIN: REFERENTE (dentro de la lista de enfermeros, Rol = "Referente") ===
+function mostrarLoginReferente() {
+    const modalBox = document.querySelector('.modal-box');
+    if (!modalBox) return;
+
+    const referentes = listaEnfermerosDB.filter(esReferente);
+
+    if (referentes.length === 0) {
+        modalBox.innerHTML = `
+            <h2>⚠️ Sin referentes cargados</h2>
+            <p style="color:#7f8c8d; margin-top:10px;">No hay enfermeros marcados con Rol "Referente" en la base de datos.</p>
+            <div class="shift-options" style="margin-top:15px;">
+                <button onclick="mostrarSelectorTipoUsuario()">⬅️ Volver</button>
+            </div>
+        `;
+        return;
+    }
+
+    let opciones = '<option value="">-- Seleccioná tu nombre --</option>';
+    referentes.forEach(e => {
+        const nombre = obtenerNombreEnfermero(e);
+        opciones += `<option value="${nombre}">${nombre}</option>`;
+    });
+
+    modalBox.innerHTML = `
+        <h2>🩺 Ingreso Referente</h2>
+        <div style="margin-top:15px; text-align:left;">
+            <label style="font-size:0.9em; color:#6B7280;">Nombre</label>
+            <select id="loginReferenteSelect" style="width:100%; padding:8px; margin-top:5px; margin-bottom:12px; box-sizing:border-box;">${opciones}</select>
+            <label style="font-size:0.9em; color:#6B7280;">Contraseña</label>
+            <input type="password" id="loginReferentePass" style="width:100%; padding:8px; margin-top:5px; box-sizing:border-box;" placeholder="Contraseña" onkeydown="if(event.key==='Enter') validarLoginReferente();">
+            <p id="loginReferenteError" style="color:#e74c3c; margin-top:8px; display:none;">⚠️ Nombre o contraseña incorrectos.</p>
+        </div>
+        <div class="shift-options" style="margin-top:15px;">
+            <button onclick="validarLoginReferente()">Ingresar</button>
+            <button onclick="mostrarSelectorTipoUsuario()">⬅️ Volver</button>
+        </div>
+    `;
+}
+
+function validarLoginReferente() {
+    const nombre = document.getElementById('loginReferenteSelect').value;
+    const pass = document.getElementById('loginReferentePass').value.trim();
+    const errorMsg = document.getElementById('loginReferenteError');
+
+    if (!nombre) { alert("⚠️ Seleccioná tu nombre."); return; }
+
+    const referente = listaEnfermerosDB.find(e => esReferente(e) && obtenerNombreEnfermero(e) === nombre);
+    const passGuardada = referente ? obtenerPasswordEnfermero(referente) : "";
+
+    if (!referente || !passGuardada || pass !== passGuardada) {
+        if (errorMsg) errorMsg.style.display = 'block';
+        return;
+    }
+
+    // Login correcto -> ahora tiene que indicar bajo qué supervisor arma el programa
+    mostrarSelectorSupervisorReferente(nombre);
+}
+
+function mostrarSelectorSupervisorReferente(nombreReferente) {
+    const modalBox = document.querySelector('.modal-box');
+    if (!modalBox) return;
+
+    if (listaSupervisoresDB.length === 0) {
+        modalBox.innerHTML = `
+            <h2>⚠️ Sin supervisores cargados</h2>
+            <p style="color:#7f8c8d; margin-top:10px;">No hay supervisores en la base de datos para asignar.</p>
+            <div class="shift-options" style="margin-top:15px;">
+                <button onclick="mostrarSelectorTipoUsuario()">⬅️ Volver</button>
+            </div>
+        `;
+        return;
+    }
+
+    let opciones = '<option value="">-- Seleccioná el/la supervisor/a --</option>';
+    listaSupervisoresDB.forEach(s => {
+        const nombre = obtenerNombreSupervisor(s);
+        opciones += `<option value="${nombre}">${nombre}</option>`;
+    });
+
+    const nombreSeguro = nombreReferente.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+
+    modalBox.innerHTML = `
+        <h2>👤 ${nombreReferente}</h2>
+        <p style="color:#6B7280; margin-top:5px;">Indicá bajo la supervisión de quién armás este programa:</p>
+        <div style="margin-top:15px; text-align:left;">
+            <select id="selectSupervisorReferente" style="width:100%; padding:8px; box-sizing:border-box;">${opciones}</select>
+        </div>
+        <div class="shift-options" style="margin-top:15px;">
+            <button onclick="confirmarSupervisorReferente('${nombreSeguro}')">Continuar</button>
+            <button onclick="mostrarSelectorTipoUsuario()">⬅️ Volver</button>
+        </div>
+    `;
+}
+
+function confirmarSupervisorReferente(nombreReferente) {
+    const supervisorElegido = document.getElementById('selectSupervisorReferente').value;
+    if (!supervisorElegido) { alert("⚠️ Seleccioná un supervisor/a."); return; }
+
+    usuarioActual = { tipo: 'referente', nombre: nombreReferente, supervisorAsignado: supervisorElegido };
+    restaurarBotonesModal();
+}
+
+function cerrarSesion() {
+    usuarioActual = null;
+    mostrarSelectorTipoUsuario();
+}
+
 function restaurarBotonesModal() {
     const modalBox = document.querySelector('.modal-box');
     if (modalBox) {
+        const etiquetaUsuario = usuarioActual
+            ? (usuarioActual.tipo === 'referente' ? `${usuarioActual.nombre} (Referente)` : `${usuarioActual.nombre} (Supervisor/a)`)
+            : "";
+
         modalBox.innerHTML = `
             <h2>Seleccione el Turno a Armar</h2>
+            ${usuarioActual ? `<p style="color:#6B7280; font-size:0.85em; margin-top:5px;">👤 ${etiquetaUsuario} &nbsp;|&nbsp; <a href="#" onclick="cerrarSesion(); return false;" style="color:#1a5276;">Cambiar usuario</a></p>` : ''}
             <div class="shift-options">
                 <button onclick="selectTurno('MAÑANA')">☀️ MAÑANA</button>
                 <button onclick="selectTurno('TARDE')">⛅ TARDE</button>
@@ -119,6 +305,36 @@ function obtenerTurnoEnfermero(enfermero) {
 
 function obtenerNombreEnfermero(enfermero) {
     return (enfermero.nombre || enfermero.Nombre || enfermero.NOMBRE || enfermero.name || "Sin nombre").toString().trim();
+}
+
+function obtenerNombreSupervisor(supervisor) {
+    return (supervisor.nombre || supervisor.Nombre || supervisor.NOMBRE || "Sin nombre").toString().trim();
+}
+
+function obtenerRolEnfermero(enfermero) {
+    return (enfermero.rol || enfermero.Rol || enfermero.ROL || "").toString().trim();
+}
+
+function esReferente(enfermero) {
+    const rol = obtenerRolEnfermero(enfermero)
+        .toUpperCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+    return rol === "REFERENTE";
+}
+
+function obtenerPasswordEnfermero(enfermero) {
+    return (enfermero.password || enfermero.Password || enfermero.PASSWORD || 
+            enfermero["contraseña"] || enfermero["Contraseña"] || 
+            enfermero.contrasena || enfermero.Contrasena || 
+            enfermero.clave || enfermero.Clave || enfermero.CLAVE || "").toString().trim();
+}
+
+function obtenerPasswordSupervisor(supervisor) {
+    return (supervisor.password || supervisor.Password || supervisor.PASSWORD || 
+            supervisor["contraseña"] || supervisor["Contraseña"] || 
+            supervisor.contrasena || supervisor.Contrasena || 
+            supervisor.clave || supervisor.Clave || supervisor.CLAVE || "").toString().trim();
 }
 
 function turnoCoincide(turnoEnfermero, turnoSeleccionado) {
@@ -257,7 +473,10 @@ function confirmarFechas() {
         return turnoCoincide(turnoSup, turnoSeleccionado);
     });
     
-    if (supervisoresActuales.length > 0) {
+    if (usuarioActual && usuarioActual.tipo === 'referente') {
+        // Si arma el programa un Referente, se muestra el/la supervisor/a que él mismo indicó
+        document.getElementById('supervisorDisplay').textContent = usuarioActual.supervisorAsignado;
+    } else if (supervisoresActuales.length > 0) {
         const nombres = supervisoresActuales.map(s => s.nombre || s.Nombre || "Sin nombre").join(", ");
         document.getElementById('supervisorDisplay').textContent = nombres;
     } else {
@@ -684,7 +903,9 @@ function compartirImagenWhatsApp() {
 }
 
 function compartirWhatsAppTexto() {
-    const nombresSupervisores = supervisoresActuales.length > 0 ? supervisoresActuales.map(s => s.nombre || s.Nombre).join(", ") : "Sin supervisor";
+    const nombresSupervisores = usuarioActual && usuarioActual.tipo === 'referente'
+        ? usuarioActual.supervisorAsignado
+        : (supervisoresActuales.length > 0 ? supervisoresActuales.map(s => s.nombre || s.Nombre).join(", ") : "Sin supervisor");
     
     let txt = `📋 *DISTRIBUCIÓN DE ENFERMERÍA*\n🔄 *Turno:* ${turnoSeleccionado} ${horarioActual.icono}\n🕐 *Horario:* ${horarioActual.inicio} a ${horarioActual.fin}\n📅 *Fecha/s:* ${diasCronograma}\n⭐ *Supervisor/a:* ${nombresSupervisores}\n\n`;
 
